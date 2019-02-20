@@ -1,0 +1,4 @@
+tasks:
+- init: cd src/github.com/32leaves/bel && go get -v ./...
+  command: go build
+checkoutLocation: src/github.com/32leaves/bel
