@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"text/template"
 )
 
@@ -19,16 +20,47 @@ const interfaceTemplate = `
 {{- define "map" }}{ [key: {{ subt (mapKeyType .) }}]: foo }{{ end -}}
 {{- define "array" }}{{ subt (arrType .) }}[]{{ end -}}
 {{- define "root-enum" }}export enum {{ .Name }} {
-    {{ range .EnumMembers }}{{ .Name }} = {{ .Value }}
+    {{ range .EnumMembers }}{{ .Name }} = {{ .Value }},
     {{ end }}
 }{{ end -}}
+{{- define "root-st-enum" }}export type {{ .Name }} =
+    {{ range $idx, $val := .EnumMembers }}{{ if eq $idx 0 }}{{ else }} | {{ end }}{{ .Value }}{{ end }};
+{{ end -}}
 {{- define "root-iface" }} export interface {{ .Name }} {{ template "iface" . }} {{ end -}}
 {{ subtroot . }}
 `
 
-func Render(types []TypescriptType, w io.Writer) error {
+type generateOptions struct {
+	enumsAsSumTypes bool
+	out             io.Writer
+}
+
+type generateOption func(*generateOptions)
+
+var (
+	// GenerateEnumAsSumType causes enums to be be rendered as sum types
+	GenerateEnumAsSumType generateOption = func(opt *generateOptions) {
+		opt.enumsAsSumTypes = true
+	}
+
+	// GenerateOutputTo sets the writer to which we'll write the generated TS code
+	GenerateOutputTo = func(out io.Writer) generateOption {
+		return func(opt *generateOptions) {
+			opt.out = out
+		}
+	}
+)
+
+func Render(types []TypescriptType, cfg ...generateOption) error {
+	opts := generateOptions{
+		out: os.Stdout,
+	}
+	for _, c := range cfg {
+		c(&opts)
+	}
+
 	for _, t := range types {
-		err := t.Render(w)
+		err := opts.render(t)
 		if err != nil {
 			return err
 		}
@@ -36,7 +68,7 @@ func Render(types []TypescriptType, w io.Writer) error {
 	return nil
 }
 
-func (ts *TypescriptType) Render(w io.Writer) error {
+func (opts *generateOptions) render(ts TypescriptType) error {
 	getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
 		return func(t TypescriptType) (*TypescriptType, error) {
 			if len(t.Params) != minlen {
@@ -47,24 +79,35 @@ func (ts *TypescriptType) Render(w io.Writer) error {
 	}
 
 	var tpl *template.Template
+	executeTpl := func(selector func(t TypescriptType) string) func(t TypescriptType) (string, error) {
+		if selector == nil {
+			selector = func(t TypescriptType) string {
+				return string(t.Kind)
+			}
+		}
+		return func(t TypescriptType) (string, error) {
+			name := selector(t)
+
+			var b bytes.Buffer
+			if err := tpl.ExecuteTemplate(&b, name, t); err != nil {
+				return "", err
+			}
+			return b.String(), nil
+		}
+	}
+
 	funcs := template.FuncMap{
 		"mapKeyType": getParam("map", 0, 2),
 		"mapValType": getParam("map", 1, 2),
 		"arrType":    getParam("array", 0, 1),
-		"subt": func(t TypescriptType) (string, error) {
-			var b bytes.Buffer
-			if err := tpl.ExecuteTemplate(&b, string(t.Kind), t); err != nil {
-				return "", err
+		"subt":       executeTpl(nil),
+		"subtroot": executeTpl(func(t TypescriptType) string {
+			if t.Kind == TypescriptEnumKind && opts.enumsAsSumTypes {
+				return "root-st-" + string(t.Kind)
+			} else {
+				return "root-" + string(t.Kind)
 			}
-			return b.String(), nil
-		},
-        "subtroot": func(t TypescriptType) (string, error) {
-			var b bytes.Buffer
-			if err := tpl.ExecuteTemplate(&b, "root-" + string(t.Kind), t); err != nil {
-				return "", err
-			}
-			return b.String(), nil
-		},
+		}),
 	}
 
 	var err error
@@ -73,5 +116,5 @@ func (ts *TypescriptType) Render(w io.Writer) error {
 		return err
 	}
 
-	return tpl.Execute(w, ts)
+	return tpl.Execute(opts.out, ts)
 }

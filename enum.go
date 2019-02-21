@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"path/filepath"
 	"reflect"
 )
 
@@ -24,7 +25,22 @@ type ParsedSourceEnumHandler struct {
 
 func NewParsedSourceEnumHandler(srcdir string) (*ParsedSourceEnumHandler, error) {
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, srcdir, func(i os.FileInfo) bool { return true }, 0)
+	pkgs := make(map[string]*ast.Package)
+	err := filepath.Walk(srcdir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			return nil
+		}
+
+		ps, err := parser.ParseDir(fset, path, func(i os.FileInfo) bool { return true }, 0)
+		if err != nil {
+			return err
+		}
+		for n, pkg := range ps {
+			pkgs[n] = pkg
+		}
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}

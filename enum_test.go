@@ -24,9 +24,9 @@ const (
 )
 
 type StructWithEnum struct {
-    Foo MyEnum
-    Bar MyOtherEnum
-    Baz string
+	Foo MyEnum
+	Bar MyOtherEnum
+	Baz string
 }
 
 func TestParseStringEnum(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type option func(*Extractor)
+type extractOption func(*Extractor)
 
 // AnonStructNamer gives a name to an otherwise anonymous struct
 type AnonStructNamer func(i reflect.StructField) string
@@ -31,14 +31,14 @@ type Extractor struct {
 var (
 	// EmbedStructs produces a single monolithic structure where all
 	// referenced/contained subtypes become a nested Typescript struct
-	EmbedStructs option = func(e *Extractor) {
+	EmbedStructs extractOption = func(e *Extractor) {
 		e.embedStructs = true
 		e.followStructs = true
 	}
 
 	// FollowStructs enables transitive extraction of structs. By default
 	// we just emit that struct's name.
-	FollowStructs option = func(e *Extractor) {
+	FollowStructs extractOption = func(e *Extractor) {
 		e.followStructs = true
 	}
 
@@ -46,7 +46,7 @@ var (
 	// Consider `struct { foo: struct { bar: int } }` where foo has an anonymous
 	// struct as type - with NameAnonStructs set, we'd extract that struct as
 	// its own Typescript interface.
-	NameAnonStructs = func(namer AnonStructNamer) option {
+	NameAnonStructs = func(namer AnonStructNamer) extractOption {
 		return func(e *Extractor) {
 			e.noAnonStructs = true
 			e.anonStructNamer = namer
@@ -56,7 +56,7 @@ var (
 	// CustomNamer sets a custom function for translating Golang naming convention
 	// to Typescript naming convention. This function does not have to translate
 	// the type names, just the way they are written.
-	CustomNamer = func(namer Namer) option {
+	CustomNamer = func(namer Namer) extractOption {
 		return func(e *Extractor) {
 			e.interfaceNamer = namer
 		}
@@ -64,7 +64,7 @@ var (
 
 	// WithEnumHandler configures an enum handler which detects and extracts enums from
 	// types and constants.
-	WithEnumHandler = func(handler EnumHandler) option {
+	WithEnumHandler = func(handler EnumHandler) extractOption {
 		return func(e *Extractor) {
 			e.enumHandler = handler
 		}
@@ -72,7 +72,7 @@ var (
 )
 
 // NewExtractor creates a new extractor
-func NewExtractor(opts ...option) *Extractor {
+func NewExtractor(opts ...extractOption) *Extractor {
 	result := &Extractor{
 		embedStructs:   false,
 		followStructs:  false,

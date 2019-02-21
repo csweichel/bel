@@ -29,7 +29,7 @@ func main() {
         panic(err)
     }
 
-    err = bel.Render(ts, os.Stdout)
+    err = bel.Render(ts)
     if err != nil {
         panic(err)
     }
