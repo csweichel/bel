@@ -17,7 +17,7 @@ const interfaceTemplate = `
 }
 {{ end -}}
 {{- define "simple" }}{{ .Name }}{{ end -}}
-{{- define "map" }}{ [key: {{ subt (mapKeyType .) }}]: foo }{{ end -}}
+{{- define "map" }}{ [key: {{ subt (mapKeyType .) }}]: {{ subt (mapValType .) }} }{{ end -}}
 {{- define "array" }}{{ subt (arrType .) }}[]{{ end -}}
 {{- define "root-enum" }}export enum {{ .Name }} {
     {{ range .EnumMembers }}{{ .Name }} = {{ .Value }},
