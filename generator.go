@@ -1,10 +1,10 @@
 package bel
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-    "text/template"
-    "bytes"
+	"text/template"
 )
 
 const interfaceTemplate = `
@@ -21,35 +21,45 @@ const interfaceTemplate = `
 export interface {{ .Name }} {{ template "iface" . }}
 `
 
+func Render(types []TypescriptType, w io.Writer) error {
+	for _, t := range types {
+		err := t.RenderInterface(w)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (ts *TypescriptType) RenderInterface(w io.Writer) error {
-    getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
-        return func(t TypescriptType) (*TypescriptType, error) {
-            if len(t.Params) != minlen {
-                return nil, fmt.Errorf("map needs %d type params", minlen)
-            }
-            return &t.Params[idx], nil
-        }
-    }
+	getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
+		return func(t TypescriptType) (*TypescriptType, error) {
+			if len(t.Params) != minlen {
+				return nil, fmt.Errorf("map needs %d type params", minlen)
+			}
+			return &t.Params[idx], nil
+		}
+	}
 
-    var tpl *template.Template
-    funcs := template.FuncMap{
-        "mapKeyType": getParam("map", 0, 2),
-        "mapValType": getParam("map", 1, 2),
-        "arrType": getParam("array", 0, 1),
-        "subt": func(t TypescriptType) (string, error) {
-            var b bytes.Buffer
+	var tpl *template.Template
+	funcs := template.FuncMap{
+		"mapKeyType": getParam("map", 0, 2),
+		"mapValType": getParam("map", 1, 2),
+		"arrType":    getParam("array", 0, 1),
+		"subt": func(t TypescriptType) (string, error) {
+			var b bytes.Buffer
 			if err := tpl.ExecuteTemplate(&b, string(t.Kind), t); err != nil {
-                return "", err
-            }
-            return b.String(), nil
-        },
-    }
+				return "", err
+			}
+			return b.String(), nil
+		},
+	}
 
-    var err error
-    tpl, err = template.New("interface").Funcs(funcs).Parse(interfaceTemplate)
-    if err != nil {
-        return err
-    }
+	var err error
+	tpl, err = template.New("interface").Funcs(funcs).Parse(interfaceTemplate)
+	if err != nil {
+		return err
+	}
 
-    return tpl.Execute(w, ts)
+	return tpl.Execute(w, ts)
 }

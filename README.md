@@ -23,12 +23,13 @@ type Demo struct {
 }
 
 func main() {
-    ts, err := bel.Extract(Demo{})
+    extractor := bel.NewExtractor()
+    ts, err := extractor.Extract(Demo{})
     if err != nil {
         panic(err)
     }
 
-    err = ts.RenderInterface(os.Stdout)
+    err = bel.Render(ts, os.Stdout)
     if err != nil {
         panic(err)
     }

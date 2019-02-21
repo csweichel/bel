@@ -2,22 +2,107 @@ package bel
 
 import (
 	"fmt"
+	"github.com/iancoleman/strcase"
 	"reflect"
 	"strings"
 )
 
-func Extract(s interface{}) (*TypescriptType, error) {
+type option func(*Extractor)
+
+// AnonStructNamer gives a name to an otherwise anonymous struct
+type AnonStructNamer func(i reflect.StructField) string
+
+// Namer translates Go type name convention to Typescript name convention.
+// This function does not have to translate between Go types and Typescript types.
+type Namer func(string) string
+
+// Extractor pulls Typescript information from a Go structure
+type Extractor struct {
+	embedStructs    bool
+	followStructs   bool
+	noAnonStructs   bool
+	anonStructNamer AnonStructNamer
+	interfaceNamer  Namer
+
+	result map[string]TypescriptType
+}
+
+var (
+	// EmbedStructs produces a single monolithic structure where all
+	// referenced/contained subtypes become a nested Typescript struct
+	EmbedStructs option = func(e *Extractor) {
+		e.embedStructs = true
+		e.followStructs = true
+	}
+
+	// FollowStructs enables transitive extraction of structs. By default
+	// we just emit that struct's name.
+	FollowStructs option = func(e *Extractor) {
+		e.followStructs = true
+	}
+
+	// NameAnonStructs enables non-monolithic extraction of anonymous structs.
+	// Consider `struct { foo: struct { bar: int } }` where foo has an anonymous
+	// struct as type - with NameAnonStructs set, we'd extract that struct as
+	// its own Typescript interface.
+	NameAnonStructs = func(namer AnonStructNamer) option {
+		return func(e *Extractor) {
+			e.noAnonStructs = true
+			e.anonStructNamer = namer
+		}
+	}
+
+	// CustomNamer sets a custom function for translating Golang naming convention
+	// to Typescript naming convention. This function does not have to translate
+	// the type names, just the way they are written.
+	CustomNamer = func(namer Namer) option {
+		return func(e *Extractor) {
+			e.interfaceNamer = namer
+		}
+	}
+)
+
+// NewExtractor creates a new extractor
+func NewExtractor(opts ...option) Extractor {
+	result := Extractor{
+		embedStructs:   false,
+		followStructs:  false,
+		interfaceNamer: strcase.ToCamel,
+	}
+	for _, opt := range opts {
+		opt(&result)
+	}
+	return result
+}
+
+func (e *Extractor) addResult(t *TypescriptType) {
+	e.result[t.Name] = *t
+}
+
+func (e *Extractor) Extract(s interface{}) ([]TypescriptType, error) {
+	e.result = make(map[string]TypescriptType)
+
 	t := reflect.TypeOf(s)
 	if t.Kind() == reflect.Struct {
-		return extractStruct(t)
+		estruct, err := e.extractStruct(t)
+		if err != nil {
+			return nil, err
+		}
+		e.addResult(estruct)
 		// } else if t.Kind() == reflect.Interface {
 		//     return extractInterface(t)
 	} else {
 		return nil, fmt.Errorf("cannot extract TS interface from %v", t.Kind())
 	}
+
+	res := make([]TypescriptType, 0)
+	for _, e := range e.result {
+		res = append(res, e)
+	}
+	return res, nil
 }
 
-func extractStruct(t reflect.Type) (*TypescriptType, error) {
+func (e *Extractor) extractStruct(t reflect.Type) (*TypescriptType, error) {
 	fields := make([]TypescriptMember, 0)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -26,7 +111,7 @@ func extractStruct(t reflect.Type) (*TypescriptType, error) {
 			continue
 		}
 
-		m, err := extractStructField(t.Field(i))
+		m, err := e.extractStructField(t.Field(i))
 		if err != nil {
 			return nil, err
 		}
@@ -40,20 +125,44 @@ func extractStruct(t reflect.Type) (*TypescriptType, error) {
 	}, nil
 }
 
-func extractStructField(t reflect.StructField) (*TypescriptMember, error) {
+func (e *Extractor) extractStructField(t reflect.StructField) (*TypescriptMember, error) {
 	ttype := t.Type
 	var tstype *TypescriptType
 	if t.Type.Kind() == reflect.Ptr {
 		ttype = ttype.Elem()
 	}
 	if ttype.Kind() == reflect.Struct {
-		nme := ttype.Name()
-		if nme == "" {
-			res, err := extractStruct(ttype)
+		isanon := ttype.Name() == ""
+		if isanon {
+			astruct, err := e.extractStruct(ttype)
 			if err != nil {
 				return nil, err
 			}
-			tstype = res
+
+			if e.noAnonStructs {
+				astructName := e.anonStructNamer(t)
+				astruct.Name = astructName
+				e.addResult(astruct)
+				tstype = &TypescriptType{Name: astructName, Kind: TypescriptSimpleKind}
+			} else {
+				tstype = astruct
+			}
+		} else if e.embedStructs {
+			astruct, err := e.extractStruct(ttype)
+			if err != nil {
+				return nil, err
+			}
+
+			astruct.Name = ""
+			tstype = astruct
+		} else if e.followStructs {
+			astruct, err := e.extractStruct(ttype)
+			if err != nil {
+				return nil, err
+			}
+
+			e.addResult(astruct)
+			tstype = &TypescriptType{Name: astruct.Name, Kind: TypescriptSimpleKind}
 		} else {
 			tstype = &TypescriptType{Name: ttype.Name(), Kind: TypescriptSimpleKind}
 		}

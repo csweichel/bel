@@ -1,20 +1,21 @@
 package bel
 
 import (
-	"os"
-    "testing"
+	// "os"
+	"testing"
 )
 
 func TestGenerateStuff(t *testing.T) {
-    extr, err := Extract(StructOfAllKind{})
-    if err != nil {
-        t.Error(err)
-        return
-    }
+	// extractor := New()
+	// extract, err := extractor.Extract(StructOfAllKind{})
+	// if err != nil {
+	// 	t.Error(err)
+	// 	return
+	// }
 
-    err = extr.RenderInterface(os.Stdout)
-    if err != nil {
-        t.Error(err)
-        return
-    }
+	// err = extract.RenderInterface(os.Stdout)
+	// if err != nil {
+	// 	t.Error(err)
+	// 	return
+	// }
 }

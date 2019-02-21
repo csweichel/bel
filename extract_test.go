@@ -3,6 +3,7 @@ package bel
 import (
 	// "github.com/alecthomas/repr"
 	"github.com/go-test/deep"
+	"reflect"
 	"testing"
 )
 
@@ -40,6 +41,14 @@ type StructOfAllKind struct {
 	}
 }
 
+type NestedStruct struct {
+	Contains AnotherTestStruct
+	Refers   *AnotherTestStruct
+	Anon     struct {
+		Foo string
+	}
+}
+
 // AnotherTestStruct is just yet another struct
 type AnotherTestStruct struct {
 	// Foo has some documentation
@@ -49,7 +58,8 @@ type AnotherTestStruct struct {
 }
 
 func TestExtractStruct(t *testing.T) {
-	extract, err := Extract(MyTestStruct{})
+	extractor := NewExtractor()
+	extract, err := extractor.Extract(MyTestStruct{})
 	if err != nil {
 		t.Error(err)
 		return
@@ -58,63 +68,135 @@ func TestExtractStruct(t *testing.T) {
 	// best generated with
 	// repr.Print(extract)
 
-	expectation := &TypescriptType{
-		Name: "MyTestStruct",
-		Kind: TypescriptKind("iface"),
-		Members: []TypescriptMember{
-			{
-				TypedElement: TypedElement{
-					Name: "StringField",
-					Type: TypescriptType{
-						Name: "string",
-						Kind: TypescriptKind("simple"),
+	expectation := []TypescriptType{
+		{
+			Name: "MyTestStruct",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "StringField",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "OptionalField",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsOptional: true,
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "thisFieldIsNamed",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "thisIsOptional",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsOptional: true,
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Containment",
+						Type: TypescriptType{
+							Name: "AnotherTestStruct",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Referece",
+						Type: TypescriptType{
+							Name: "AnotherTestStruct",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
 			},
-			{
-				TypedElement: TypedElement{
-					Name: "OptionalField",
-					Type: TypescriptType{
-						Name: "string",
-						Kind: TypescriptKind("simple"),
+		},
+	}
+	diff := deep.Equal(expectation, extract)
+	for _, d := range diff {
+		t.Error(d)
+	}
+}
+
+func TestNameAnonStructs(t *testing.T) {
+	namer := func(t reflect.StructField) string {
+		return t.Name
+	}
+	extractor := NewExtractor(NameAnonStructs(namer))
+	extract, err := extractor.Extract(NestedStruct{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// best generated with
+	// repr.Print(extract)
+
+	expectation := []TypescriptType{
+		{
+			Name: "Anon",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "Foo",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
-				IsOptional: true,
 			},
-			{
-				TypedElement: TypedElement{
-					Name: "thisFieldIsNamed",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
+		},
+		{
+			Name: "NestedStruct",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "Contains",
+						Type: TypescriptType{
+							Name: "AnotherTestStruct",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "thisIsOptional",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
+				{
+					TypedElement: TypedElement{
+						Name: "Refers",
+						Type: TypescriptType{
+							Name: "AnotherTestStruct",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
-				IsOptional: true,
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Containment",
-					Type: TypescriptType{
-						Name: "AnotherTestStruct",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Referece",
-					Type: TypescriptType{
-						Name: "AnotherTestStruct",
-						Kind: TypescriptKind("simple"),
+				{
+					TypedElement: TypedElement{
+						Name: "Anon",
+						Type: TypescriptType{
+							Name: "Anon",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
 			},
@@ -127,205 +209,395 @@ func TestExtractStruct(t *testing.T) {
 	}
 }
 
-func TestStructOfAllKind(t *testing.T) {
-	extract, err := Extract(StructOfAllKind{})
+func TestFollowStruct(t *testing.T) {
+	extractor := NewExtractor(FollowStructs)
+	extract, err := extractor.Extract(NestedStruct{})
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	expectation := &TypescriptType{
-		Name: "StructOfAllKind",
-		Kind: TypescriptKind("iface"),
-		Members: []TypescriptMember{
-			{
-				TypedElement: TypedElement{
-					Name: "BoolMember",
-					Type: TypescriptType{
-						Name: "boolean",
-						Kind: TypescriptKind("simple"),
+	// best generated with
+	// repr.Print(extract)
+
+	expectation := []TypescriptType{
+		{
+			Name: "AnotherTestStruct",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "Foo",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "StringArrayMember",
-					Type: TypescriptType{
-						Kind: TypescriptKind("array"),
-						Params: []TypescriptType{
-							{
-								Name: "string",
-								Kind: TypescriptKind("simple"),
-							},
+				{
+					TypedElement: TypedElement{
+						Name: "Bar",
+						Type: TypescriptType{
+							Name: "boolean",
+							Kind: TypescriptKind("simple"),
 						},
 					},
 				},
 			},
-			{
-				TypedElement: TypedElement{
-					Name: "Float32Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Float64Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "IntMember",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Int8Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Int16Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Int32Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Int64Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "UintMember",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Uint8Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Uint16Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Uint32Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "Uint64Member",
-					Type: TypescriptType{
-						Name: "number",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "MapMember",
-					Type: TypescriptType{
-						Kind: TypescriptKind("map"),
-						Params: []TypescriptType{
-							{
-								Name: "string",
-								Kind: TypescriptKind("simple"),
-							},
-							{
-								Name: "number",
-								Kind: TypescriptKind("simple"),
-							},
+		},
+		{
+			Name: "NestedStruct",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "Contains",
+						Type: TypescriptType{
+							Name: "AnotherTestStruct",
+							Kind: TypescriptKind("simple"),
 						},
 					},
 				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "PtrMember",
-					Type: TypescriptType{
-						Name: "string",
-						Kind: TypescriptKind("simple"),
+				{
+					TypedElement: TypedElement{
+						Name: "Refers",
+						Type: TypescriptType{
+							Name: "AnotherTestStruct",
+							Kind: TypescriptKind("simple"),
+						},
 					},
 				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "StringMember",
-					Type: TypescriptType{
-						Name: "string",
-						Kind: TypescriptKind("simple"),
-					},
-				},
-			},
-			{
-				TypedElement: TypedElement{
-					Name: "AnonStruct",
-					Type: TypescriptType{
-						Kind: TypescriptKind("iface"),
-						Members: []TypescriptMember{
-							{
-								TypedElement: TypedElement{
-									Name: "AnonymousMember",
-									Type: TypescriptType{
-										Name: "string",
-										Kind: TypescriptKind("simple"),
+				{
+					TypedElement: TypedElement{
+						Name: "Anon",
+						Type: TypescriptType{
+							Kind: TypescriptKind("iface"),
+							Members: []TypescriptMember{
+								{
+									TypedElement: TypedElement{
+										Name: "Foo",
+										Type: TypescriptType{
+											Name: "string",
+											Kind: TypescriptKind("simple"),
+										},
 									},
 								},
 							},
-							{
-								TypedElement: TypedElement{
-									Name: "AnotherAnonMember",
-									Type: TypescriptType{
-										Name: "number",
-										Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	diff := deep.Equal(expectation, extract)
+	for _, d := range diff {
+		t.Error(d)
+	}
+}
+
+func TestEmbeddStruct(t *testing.T) {
+	extractor := NewExtractor(EmbedStructs)
+	extract, err := extractor.Extract(NestedStruct{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// best generated with
+	// repr.Print(extract)
+
+	expectation := []TypescriptType{
+		{
+			Name: "NestedStruct",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "Contains",
+						Type: TypescriptType{
+							Kind: TypescriptKind("iface"),
+							Members: []TypescriptMember{
+								{
+									TypedElement: TypedElement{
+										Name: "Foo",
+										Type: TypescriptType{
+											Name: "string",
+											Kind: TypescriptKind("simple"),
+										},
+									},
+								},
+								{
+									TypedElement: TypedElement{
+										Name: "Bar",
+										Type: TypescriptType{
+											Name: "boolean",
+											Kind: TypescriptKind("simple"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Refers",
+						Type: TypescriptType{
+							Kind: TypescriptKind("iface"),
+							Members: []TypescriptMember{
+								{
+									TypedElement: TypedElement{
+										Name: "Foo",
+										Type: TypescriptType{
+											Name: "string",
+											Kind: TypescriptKind("simple"),
+										},
+									},
+								},
+								{
+									TypedElement: TypedElement{
+										Name: "Bar",
+										Type: TypescriptType{
+											Name: "boolean",
+											Kind: TypescriptKind("simple"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Anon",
+						Type: TypescriptType{
+							Kind: TypescriptKind("iface"),
+							Members: []TypescriptMember{
+								{
+									TypedElement: TypedElement{
+										Name: "Foo",
+										Type: TypescriptType{
+											Name: "string",
+											Kind: TypescriptKind("simple"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	diff := deep.Equal(expectation, extract)
+	for _, d := range diff {
+		t.Error(d)
+	}
+}
+
+func TestStructOfAllKind(t *testing.T) {
+	extractor := NewExtractor()
+	extract, err := extractor.Extract(StructOfAllKind{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	expectation := []TypescriptType{
+		{
+			Name: "StructOfAllKind",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "BoolMember",
+						Type: TypescriptType{
+							Name: "boolean",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "StringArrayMember",
+						Type: TypescriptType{
+							Kind: TypescriptKind("array"),
+							Params: []TypescriptType{
+								{
+									Name: "string",
+									Kind: TypescriptKind("simple"),
+								},
+							},
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Float32Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Float64Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "IntMember",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Int8Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Int16Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Int32Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Int64Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "UintMember",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Uint8Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Uint16Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Uint32Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Uint64Member",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "MapMember",
+						Type: TypescriptType{
+							Kind: TypescriptKind("map"),
+							Params: []TypescriptType{
+								{
+									Name: "string",
+									Kind: TypescriptKind("simple"),
+								},
+								{
+									Name: "number",
+									Kind: TypescriptKind("simple"),
+								},
+							},
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "PtrMember",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "StringMember",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "AnonStruct",
+						Type: TypescriptType{
+							Kind: TypescriptKind("iface"),
+							Members: []TypescriptMember{
+								{
+									TypedElement: TypedElement{
+										Name: "AnonymousMember",
+										Type: TypescriptType{
+											Name: "string",
+											Kind: TypescriptKind("simple"),
+										},
+									},
+								},
+								{
+									TypedElement: TypedElement{
+										Name: "AnotherAnonMember",
+										Type: TypescriptType{
+											Name: "number",
+											Kind: TypescriptKind("simple"),
+										},
 									},
 								},
 							},
