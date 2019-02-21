@@ -7,13 +7,15 @@ const (
 	TypescriptArrayKind     TypescriptKind = "array"
 	TypescriptMapKind       TypescriptKind = "map"
 	TypescriptInterfaceKind TypescriptKind = "iface"
+	TypescriptEnumKind      TypescriptKind = "enum"
 )
 
 type TypescriptType struct {
-	Name    string
-	Kind    TypescriptKind
-	Members []TypescriptMember
-	Params  []TypescriptType
+	Name        string
+	Kind        TypescriptKind
+	Members     []TypescriptMember
+	Params      []TypescriptType
+	EnumMembers []TypescriptEnumMember
 }
 
 type TypescriptMember struct {
@@ -21,6 +23,11 @@ type TypescriptMember struct {
 	IsOptional bool
 	IsFunction bool
 	Args       []TypedElement
+}
+
+type TypescriptEnumMember struct {
+	Name  string
+	Value string
 }
 
 type TypedElement struct {

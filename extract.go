@@ -23,6 +23,7 @@ type Extractor struct {
 	noAnonStructs   bool
 	anonStructNamer AnonStructNamer
 	interfaceNamer  Namer
+	enumHandler     EnumHandler
 
 	result map[string]TypescriptType
 }
@@ -60,17 +61,25 @@ var (
 			e.interfaceNamer = namer
 		}
 	}
+
+	// WithEnumHandler configures an enum handler which detects and extracts enums from
+	// types and constants.
+	WithEnumHandler = func(handler EnumHandler) option {
+		return func(e *Extractor) {
+			e.enumHandler = handler
+		}
+	}
 )
 
 // NewExtractor creates a new extractor
-func NewExtractor(opts ...option) Extractor {
-	result := Extractor{
+func NewExtractor(opts ...option) *Extractor {
+	result := &Extractor{
 		embedStructs:   false,
 		followStructs:  false,
 		interfaceNamer: strcase.ToCamel,
 	}
 	for _, opt := range opts {
-		opt(&result)
+		opt(result)
 	}
 	return result
 }
@@ -126,52 +135,9 @@ func (e *Extractor) extractStruct(t reflect.Type) (*TypescriptType, error) {
 }
 
 func (e *Extractor) extractStructField(t reflect.StructField) (*TypescriptMember, error) {
-	ttype := t.Type
-	var tstype *TypescriptType
-	if t.Type.Kind() == reflect.Ptr {
-		ttype = ttype.Elem()
-	}
-	if ttype.Kind() == reflect.Struct {
-		isanon := ttype.Name() == ""
-		if isanon {
-			astruct, err := e.extractStruct(ttype)
-			if err != nil {
-				return nil, err
-			}
-
-			if e.noAnonStructs {
-				astructName := e.anonStructNamer(t)
-				astruct.Name = astructName
-				e.addResult(astruct)
-				tstype = &TypescriptType{Name: astructName, Kind: TypescriptSimpleKind}
-			} else {
-				tstype = astruct
-			}
-		} else if e.embedStructs {
-			astruct, err := e.extractStruct(ttype)
-			if err != nil {
-				return nil, err
-			}
-
-			astruct.Name = ""
-			tstype = astruct
-		} else if e.followStructs {
-			astruct, err := e.extractStruct(ttype)
-			if err != nil {
-				return nil, err
-			}
-
-			e.addResult(astruct)
-			tstype = &TypescriptType{Name: astruct.Name, Kind: TypescriptSimpleKind}
-		} else {
-			tstype = &TypescriptType{Name: ttype.Name(), Kind: TypescriptSimpleKind}
-		}
-	} else {
-		res, err := getPrimitiveType(ttype)
-		if err != nil {
-			return nil, err
-		}
-		tstype = res
+	tstype, err := e.getType(t.Type, &t)
+	if err != nil {
+		return nil, err
 	}
 
 	optional := false
@@ -202,7 +168,71 @@ func (e *Extractor) extractStructField(t reflect.StructField) (*TypescriptMember
 	}, nil
 }
 
-func getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
+func (e *Extractor) getType(ttype reflect.Type, t *reflect.StructField) (*TypescriptType, error) {
+	var tstype *TypescriptType
+
+	if ttype.Kind() == reflect.Ptr {
+		ttype = ttype.Elem()
+	}
+	if ttype.Kind() == reflect.Struct {
+		isanon := ttype.Name() == ""
+		if isanon {
+			astruct, err := e.extractStruct(ttype)
+			if err != nil {
+				return nil, err
+			}
+
+			if e.noAnonStructs {
+				astructName := e.anonStructNamer(*t)
+				astruct.Name = astructName
+				e.addResult(astruct)
+				tstype = &TypescriptType{Name: astructName, Kind: TypescriptSimpleKind}
+			} else {
+				tstype = astruct
+			}
+		} else if e.embedStructs {
+			astruct, err := e.extractStruct(ttype)
+			if err != nil {
+				return nil, err
+			}
+
+			astruct.Name = ""
+			tstype = astruct
+		} else if e.followStructs {
+			astruct, err := e.extractStruct(ttype)
+			if err != nil {
+				return nil, err
+			}
+
+			e.addResult(astruct)
+			tstype = &TypescriptType{Name: astruct.Name, Kind: TypescriptSimpleKind}
+		} else {
+			tstype = &TypescriptType{Name: ttype.Name(), Kind: TypescriptSimpleKind}
+		}
+	} else if e.enumHandler != nil && e.enumHandler.IsEnum(ttype) {
+		em, err := e.enumHandler.GetMember(ttype)
+		if err != nil {
+			return nil, err
+		}
+		enum := &TypescriptType{
+			Name:        ttype.Name(),
+			Kind:        TypescriptEnumKind,
+			EnumMembers: em,
+		}
+		e.addResult(enum)
+		tstype = &TypescriptType{Name: ttype.Name(), Kind: TypescriptSimpleKind}
+	} else {
+		res, err := e.getPrimitiveType(ttype)
+		if err != nil {
+			return nil, err
+		}
+		tstype = res
+	}
+
+	return tstype, nil
+}
+
+func (e *Extractor) getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 	mktype := func(n string) *TypescriptType {
 		return &TypescriptType{
 			Kind: TypescriptSimpleKind,
@@ -216,7 +246,7 @@ func getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 		return mktype("boolean"), nil
 	case reflect.Array,
 		reflect.Slice:
-		elem, err := getPrimitiveType(t.Elem())
+		elem, err := e.getType(t.Elem(), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -238,11 +268,11 @@ func getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 		reflect.Uint64:
 		return mktype("number"), nil
 	case reflect.Map:
-		key, err := getPrimitiveType(t.Key())
+		key, err := e.getType(t.Key(), nil)
 		if err != nil {
 			return nil, err
 		}
-		elem, err := getPrimitiveType(t.Elem())
+		elem, err := e.getType(t.Elem(), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +282,7 @@ func getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 		}, nil
 		// return mktype(fmt.Sprintf("{ [key: %s]: %s }", key, elem)), nil
 	case reflect.Ptr:
-		return getPrimitiveType(t.Elem())
+		return e.getType(t.Elem(), nil)
 	case reflect.String:
 		return mktype("string"), nil
 	}

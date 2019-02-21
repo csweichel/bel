@@ -6,14 +6,19 @@ import (
 )
 
 func TestGenerateStuff(t *testing.T) {
-	// extractor := New()
-	// extract, err := extractor.Extract(StructOfAllKind{})
+	// handler, err := NewParsedSourceEnumHandler(".")
 	// if err != nil {
 	// 	t.Error(err)
 	// 	return
 	// }
 
-	// err = extract.RenderInterface(os.Stdout)
+	// extract, err := NewExtractor(WithEnumHandler(handler)).Extract(StructWithEnum{})
+	// if err != nil {
+	// 	t.Error(err)
+	// 	return
+	// }
+
+	// err = Render(extract, os.Stdout)
 	// if err != nil {
 	// 	t.Error(err)
 	// 	return
