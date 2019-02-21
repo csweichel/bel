@@ -27,12 +27,20 @@ const interfaceTemplate = `
     {{ range $idx, $val := .EnumMembers }}{{ if eq $idx 0 }}{{ else }} | {{ end }}{{ .Value }}{{ end }};
 {{ end -}}
 {{- define "root-iface" }} export interface {{ .Name }} {{ template "iface" . }} {{ end -}}
+
+{{ if .Namespace }}export namespace {{ .Namespace }} {
+    {{ end -}}
+{{- range .Types }}
 {{ subtroot . }}
+{{ end -}}
+{{ if .Namespace }} } {{ end }}
 `
 
 type generateOptions struct {
 	enumsAsSumTypes bool
 	out             io.Writer
+    Namespace string
+    Types []TypescriptType
 }
 
 type generateOption func(*generateOptions)
@@ -49,6 +57,13 @@ var (
 			opt.out = out
 		}
 	}
+
+    // GenerateNamespace produces a namespace in which the generated types live
+    GenerateNamespace = func(ns string) generateOption {
+        return func(opt *generateOptions) {
+            opt.Namespace = ns
+        }
+    }
 )
 
 func Render(types []TypescriptType, cfg ...generateOption) error {
@@ -59,17 +74,7 @@ func Render(types []TypescriptType, cfg ...generateOption) error {
 		c(&opts)
 	}
 
-	for _, t := range types {
-		err := opts.render(t)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (opts *generateOptions) render(ts TypescriptType) error {
-	getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
+    getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
 		return func(t TypescriptType) (*TypescriptType, error) {
 			if len(t.Params) != minlen {
 				return nil, fmt.Errorf("map needs %d type params", minlen)
@@ -116,5 +121,6 @@ func (opts *generateOptions) render(ts TypescriptType) error {
 		return err
 	}
 
-	return tpl.Execute(opts.out, ts)
+    opts.Types = types
+	return tpl.Execute(opts.out, opts)
 }

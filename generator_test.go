@@ -17,7 +17,7 @@ func TestGenerateStuff(t *testing.T) {
 		return
 	}
 
-	err = Render(extract, GenerateEnumAsSumType)
+	err = Render(extract, GenerateEnumAsSumType, GenerateNamespace("foobar"))
 	if err != nil {
 		t.Error(err)
 		return
