@@ -2,9 +2,10 @@ package bel
 
 import (
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"reflect"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 type extractOption func(*Extractor)

@@ -2,9 +2,10 @@ package bel
 
 import (
 	// "github.com/alecthomas/repr"
-	"github.com/go-test/deep"
 	"reflect"
 	"testing"
+
+	"github.com/go-test/deep"
 )
 
 type MyTestStruct struct {

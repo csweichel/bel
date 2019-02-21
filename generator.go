@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"text/template"
+	"time"
 )
 
 const interfaceTemplate = `
@@ -27,7 +28,7 @@ const interfaceTemplate = `
     {{ range $idx, $val := .EnumMembers }}{{ if eq $idx 0 }}{{ else }} | {{ end }}{{ .Value }}{{ end }};
 {{ end -}}
 {{- define "root-iface" }} export interface {{ .Name }} {{ template "iface" . }} {{ end -}}
-
+{{- .Preamble }}
 {{ if .Namespace }}export namespace {{ .Namespace }} {
     {{ end -}}
 {{- range .Types }}
@@ -39,8 +40,9 @@ const interfaceTemplate = `
 type generateOptions struct {
 	enumsAsSumTypes bool
 	out             io.Writer
-    Namespace string
-    Types []TypescriptType
+	Namespace       string
+	Types           []TypescriptType
+	Preamble        string
 }
 
 type generateOption func(*generateOptions)
@@ -58,23 +60,38 @@ var (
 		}
 	}
 
-    // GenerateNamespace produces a namespace in which the generated types live
-    GenerateNamespace = func(ns string) generateOption {
-        return func(opt *generateOptions) {
-            opt.Namespace = ns
-        }
-    }
+	// GenerateNamespace produces a namespace in which the generated types live
+	GenerateNamespace = func(ns string) generateOption {
+		return func(opt *generateOptions) {
+			opt.Namespace = ns
+		}
+	}
+
+	// GenerateAdditionalPreamble produces additional output at the begining of the Typescript code
+	GenerateAdditionalPreamble = func(preamble string) generateOption {
+		return func(opt *generateOptions) {
+			opt.Preamble += preamble
+		}
+	}
+
+	// GeneratePreamble produces output at the begining of the Typescript code
+	GeneratePreamble = func(preamble string) generateOption {
+		return func(opt *generateOptions) {
+			opt.Preamble = preamble
+		}
+	}
 )
 
 func Render(types []TypescriptType, cfg ...generateOption) error {
 	opts := generateOptions{
-		out: os.Stdout,
+		out:      os.Stdout,
+		Preamble: fmt.Sprintf("// generated using github.com/32leaves/bel on %s\n// DO NOT MODIFY\n", time.Now()),
 	}
 	for _, c := range cfg {
 		c(&opts)
 	}
 
-    getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
+	getParam := func(nme string, idx, minlen int) func(t TypescriptType) (*TypescriptType, error) {
 		return func(t TypescriptType) (*TypescriptType, error) {
 			if len(t.Params) != minlen {
 				return nil, fmt.Errorf("map needs %d type params", minlen)
@@ -121,6 +138,6 @@ func Render(types []TypescriptType, cfg ...generateOption) error {
 		return err
 	}
 
-    opts.Types = types
+	opts.Types = types
 	return tpl.Execute(opts.out, opts)
 }

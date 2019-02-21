@@ -2,8 +2,9 @@ package bel
 
 import (
 	// "github.com/alecthomas/repr"
-	"github.com/go-test/deep"
 	"testing"
+
+	"github.com/go-test/deep"
 )
 
 type MyEnum string
