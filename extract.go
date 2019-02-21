@@ -125,7 +125,11 @@ func (e *Extractor) extractStruct(t reflect.Type) (*TypescriptType, error) {
 		if err != nil {
 			return nil, err
 		}
-		fields = append(fields, *m)
+
+		// skip fields named "-", see https://golang.org/pkg/encoding/json/#Marshal
+		if m.Name != "-" {
+			fields = append(fields, *m)
+		}
 	}
 
 	return &TypescriptType{

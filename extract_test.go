@@ -14,6 +14,7 @@ type MyTestStruct struct {
 	OptionalField      string `json:",omitempty"`
 	NamedField         int    `json:"thisFieldIsNamed"`
 	NamedOptionalField int32  `json:"thisIsOptional,omitempty"`
+	SkipThisField      string `json:"-"`
 	Containment        AnotherTestStruct
 	Referece           *AnotherTestStruct
 }
