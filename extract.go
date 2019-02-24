@@ -136,13 +136,15 @@ func (e *Extractor) extractInterface(t reflect.Type) (*TypescriptType, error) {
 			errorInterface := reflect.TypeOf((*error)(nil)).Elem()
 			if fnt.NumOut() == 2 && !fnt.Out(1).Implements(errorInterface) {
 				return nil, fmt.Errorf("second return value must be an error in %s/%s", t.Name(), tm.Name)
+			} else if fnt.Out(0).Implements(errorInterface) {
+				// do not use this type - it's the error return
+			} else {
+				rv, err := e.getType(fnt.Out(0), nil)
+				if err != nil {
+					return nil, err
+				}
+				retval = *rv
 			}
-
-			rv, err := e.getType(fnt.Out(0), nil)
-			if err != nil {
-				return nil, err
-			}
-			retval = *rv
 		} else {
 			return nil, fmt.Errorf("cannot export more than two return values in %s/%s", t.Name(), tm.Name)
 		}
