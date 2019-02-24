@@ -13,10 +13,11 @@ const interfaceTemplate = `
 {{ define "iface" -}}
 {
     {{ range .Members -}}
-    {{ .Name }}{{ if .IsOptional }}?{{ end }}: {{ subt .Type }}
+    {{ .Name }}{{ if .IsOptional }}?{{ end }}{{ if .IsFunction }}({{ template "args" . }}){{ end }}: {{ subt .Type | default "void" }}
     {{ end }}
 }
 {{ end -}}
+{{- define "args" }}{{ range $idx, $val := .Args }}{{ if eq $idx 0 }}{{ else }}, {{ end }}{{ .Name }}: {{ subt .Type }}{{ end }}{{ end -}}
 {{- define "simple" }}{{ .Name }}{{ end -}}
 {{- define "map" }}{ [key: {{ subt (mapKeyType .) }}]: {{ subt (mapValType .) }} }{{ end -}}
 {{- define "array" }}{{ subt (arrType .) }}[]{{ end -}}
@@ -109,6 +110,9 @@ func Render(types []TypescriptType, cfg ...generateOption) error {
 		}
 		return func(t TypescriptType) (string, error) {
 			name := selector(t)
+			if name == "" {
+				return "", nil
+			}
 
 			var b bytes.Buffer
 			if err := tpl.ExecuteTemplate(&b, name, t); err != nil {
@@ -130,6 +134,12 @@ func Render(types []TypescriptType, cfg ...generateOption) error {
 				return "root-" + string(t.Kind)
 			}
 		}),
+		"default": func(def, val string) string {
+			if val == "" {
+				return def
+			}
+			return val
+		},
 	}
 
 	var err error

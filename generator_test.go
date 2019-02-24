@@ -4,6 +4,10 @@ import (
 	"testing"
 )
 
+type DemoService interface {
+	SayHello(name, msg string) (string, error)
+}
+
 func TestGenerateStuff(t *testing.T) {
 	handler, err := NewParsedSourceEnumHandler(".")
 	if err != nil {
@@ -11,7 +15,7 @@ func TestGenerateStuff(t *testing.T) {
 		return
 	}
 
-	extract, err := NewExtractor(WithEnumHandler(handler)).Extract(StructWithEnum{})
+	extract, err := NewExtractor(WithEnumHandler(handler), FollowStructs).Extract((*DemoService)(nil))
 	if err != nil {
 		t.Error(err)
 		return

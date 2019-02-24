@@ -93,14 +93,24 @@ func (e *Extractor) Extract(s interface{}) ([]TypescriptType, error) {
 	e.result = make(map[string]TypescriptType)
 
 	t := reflect.TypeOf(s)
+	if t == nil {
+		return nil, fmt.Errorf("TypeOf(s) == nil")
+	} else if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
 	if t.Kind() == reflect.Struct {
 		estruct, err := e.extractStruct(t)
 		if err != nil {
 			return nil, err
 		}
 		e.addResult(estruct)
-		// } else if t.Kind() == reflect.Interface {
-		//     return extractInterface(t)
+	} else if t.Kind() == reflect.Interface {
+		et, err := e.extractInterface(t)
+		if err != nil {
+			return nil, err
+		}
+		e.addResult(et)
 	} else {
 		return nil, fmt.Errorf("cannot extract TS interface from %v", t.Kind())
 	}
@@ -108,6 +118,67 @@ func (e *Extractor) Extract(s interface{}) ([]TypescriptType, error) {
 	res := make([]TypescriptType, 0)
 	for _, e := range e.result {
 		res = append(res, e)
+	}
+	return res, nil
+}
+
+func (e *Extractor) extractInterface(t reflect.Type) (*TypescriptType, error) {
+	if t.Kind() != reflect.Interface {
+		return nil, fmt.Errorf("can only extract interface types")
+	}
+
+	methods := make([]TypescriptMember, t.NumMethod())
+	for i := 0; i < t.NumMethod(); i++ {
+		tm := t.Method(i)
+		fnt := tm.Type
+
+		var retval TypescriptType
+		if fnt.NumOut() == 0 {
+			// void
+		} else if fnt.NumOut() <= 2 {
+			errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+			if fnt.NumOut() == 2 && !fnt.Out(1).Implements(errorInterface) {
+				return nil, fmt.Errorf("second return value must be an error in %s/%s", t.Name(), tm.Name)
+			}
+
+			rv, err := e.getType(fnt.Out(0), nil)
+			if err != nil {
+				return nil, err
+			}
+			retval = *rv
+		} else {
+			return nil, fmt.Errorf("cannot export more than two return values in %s/%s", t.Name(), tm.Name)
+		}
+
+		if fnt.IsVariadic() {
+			return nil, fmt.Errorf("variadic functions are not supported: %s/%s", t.Name(), tm.Name)
+		}
+		args := make([]TypedElement, fnt.NumIn())
+		for j := 0; j < fnt.NumIn(); j++ {
+			at, err := e.getType(fnt.In(j), nil)
+			if err != nil {
+				return nil, err
+			}
+			args[j] = TypedElement{
+				Name: fmt.Sprintf("arg%d", j),
+				Type: *at,
+			}
+		}
+
+		methods[i] = TypescriptMember{
+			TypedElement: TypedElement{
+				Name: tm.Name,
+				Type: retval,
+			},
+			IsFunction: true,
+			Args:       args,
+		}
+	}
+
+	res := &TypescriptType{
+		Kind:    TypescriptInterfaceKind,
+		Name:    e.typeNamer(t.Name()),
+		Members: methods,
 	}
 	return res, nil
 }

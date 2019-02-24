@@ -48,3 +48,39 @@ export interface Demo {
     }
 }
 ```
+
+### Converting interfaces
+You can also convert Golang interfaces to TypeScript interfaces. This is particularly handy for JSON RPC:
+```Go
+package main
+
+import (
+    "os"
+    "github.com/32leaves/bel"
+)
+
+type DemoService interface {
+    SayHello(name, msg string) (string, error)
+}
+
+func main() {
+    extractor := bel.NewExtractor()
+    ts, err := extractor.Extract((*DemoService)(nil))
+    if err != nil {
+        panic(err)
+    }
+
+    err = bel.Render(ts)
+    if err != nil {
+        panic(err)
+    }
+}
+```
+
+produces something akin to (sans formatting):
+
+```TypeScript
+export interface DemoService {
+    SayHello(arg0: string, arg1: string): string
+}
+```

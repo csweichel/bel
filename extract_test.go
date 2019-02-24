@@ -1,7 +1,6 @@
 package bel
 
 import (
-	// "github.com/alecthomas/repr"
 	"reflect"
 	"testing"
 
@@ -610,6 +609,87 @@ func TestStructOfAllKind(t *testing.T) {
 		},
 	}
 
+	diff := deep.Equal(expectation, extract)
+	for _, d := range diff {
+		t.Error(d)
+	}
+}
+
+type MyInterface interface {
+	FirstOp(arg MyTestStruct) (int, error)
+	SecondOp(arg0 int32, arg1 *StructOfAllKind) (*StructOfAllKind, error)
+	VoidOp()
+}
+
+func TestExtractInterface(t *testing.T) {
+	extractor := NewExtractor()
+
+	var iface *MyInterface
+	extract, _ := extractor.Extract(iface)
+
+	// best generated using
+	// repr.Print(extract)
+	expectation := []TypescriptType{
+		{
+			Name: "MyInterface",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "FirstOp",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsFunction: true,
+					Args: []TypedElement{
+						{
+							Name: "arg0",
+							Type: TypescriptType{
+								Name: "MyTestStruct",
+								Kind: TypescriptKind("simple"),
+							},
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "SecondOp",
+						Type: TypescriptType{
+							Name: "StructOfAllKind",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsFunction: true,
+					Args: []TypedElement{
+						{
+							Name: "arg0",
+							Type: TypescriptType{
+								Name: "number",
+								Kind: TypescriptKind("simple"),
+							},
+						},
+						{
+							Name: "arg1",
+							Type: TypescriptType{
+								Name: "StructOfAllKind",
+								Kind: TypescriptKind("simple"),
+							},
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "VoidOp",
+						Type: TypescriptType{},
+					},
+					IsFunction: true,
+					Args:       []TypedElement{},
+				},
+			},
+		},
+	}
 	diff := deep.Equal(expectation, extract)
 	for _, d := range diff {
 		t.Error(d)
