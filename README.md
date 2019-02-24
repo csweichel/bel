@@ -23,8 +23,7 @@ type Demo struct {
 }
 
 func main() {
-    extractor := bel.NewExtractor()
-    ts, err := extractor.Extract(Demo{})
+    ts, err := Extract(Demo{})
     if err != nil {
         panic(err)
     }
@@ -64,8 +63,7 @@ type DemoService interface {
 }
 
 func main() {
-    extractor := bel.NewExtractor()
-    ts, err := extractor.Extract((*DemoService)(nil))
+    ts, err := Extract((*DemoService)(nil))
     if err != nil {
         panic(err)
     }

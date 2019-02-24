@@ -15,7 +15,10 @@ func TestGenerateStuff(t *testing.T) {
 		return
 	}
 
-	extract, err := NewExtractor(WithEnumHandler(handler), FollowStructs).Extract((*DemoService)(nil))
+	extract, err := Extract((*DemoService)(nil),
+		WithEnumHandler(handler),
+		FollowStructs,
+	)
 	if err != nil {
 		t.Error(err)
 		return

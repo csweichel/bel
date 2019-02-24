@@ -59,8 +59,7 @@ type AnotherTestStruct struct {
 }
 
 func TestExtractStruct(t *testing.T) {
-	extractor := NewExtractor()
-	extract, err := extractor.Extract(MyTestStruct{})
+	extract, err := Extract(MyTestStruct{})
 	if err != nil {
 		t.Error(err)
 		return
@@ -143,8 +142,7 @@ func TestNameAnonStructs(t *testing.T) {
 	namer := func(t reflect.StructField) string {
 		return t.Name
 	}
-	extractor := NewExtractor(NameAnonStructs(namer))
-	extract, err := extractor.Extract(NestedStruct{})
+	extract, err := Extract(NestedStruct{}, NameAnonStructs(namer))
 	if err != nil {
 		t.Error(err)
 		return
@@ -211,8 +209,7 @@ func TestNameAnonStructs(t *testing.T) {
 }
 
 func TestFollowStruct(t *testing.T) {
-	extractor := NewExtractor(FollowStructs)
-	extract, err := extractor.Extract(NestedStruct{})
+	extract, err := Extract(NestedStruct{}, FollowStructs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -298,8 +295,7 @@ func TestFollowStruct(t *testing.T) {
 }
 
 func TestEmbeddStruct(t *testing.T) {
-	extractor := NewExtractor(EmbedStructs)
-	extract, err := extractor.Extract(NestedStruct{})
+	extract, err := Extract(NestedStruct{}, EmbedStructs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -398,8 +394,7 @@ func TestEmbeddStruct(t *testing.T) {
 }
 
 func TestStructOfAllKind(t *testing.T) {
-	extractor := NewExtractor()
-	extract, err := extractor.Extract(StructOfAllKind{})
+	extract, err := Extract(StructOfAllKind{})
 	if err != nil {
 		t.Error(err)
 		return
@@ -622,10 +617,7 @@ type MyInterface interface {
 }
 
 func TestExtractInterface(t *testing.T) {
-	extractor := NewExtractor()
-
-	var iface *MyInterface
-	extract, _ := extractor.Extract(iface)
+	extract, _ := Extract((*MyInterface)(nil))
 
 	// best generated using
 	// repr.Print(extract)

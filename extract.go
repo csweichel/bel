@@ -72,24 +72,21 @@ var (
 	}
 )
 
-// NewExtractor creates a new extractor
-func NewExtractor(opts ...extractOption) *Extractor {
-	result := &Extractor{
+func (e *Extractor) addResult(t *TypescriptType) {
+	e.result[t.Name] = *t
+}
+
+// Extract uses reflection to extract the information required to generate Typescript code
+func Extract(s interface{}, opts ...extractOption) ([]TypescriptType, error) {
+	e := &Extractor{
 		embedStructs:  false,
 		followStructs: false,
 		typeNamer:     strcase.ToCamel,
 	}
 	for _, opt := range opts {
-		opt(result)
+		opt(e)
 	}
-	return result
-}
 
-func (e *Extractor) addResult(t *TypescriptType) {
-	e.result[t.Name] = *t
-}
-
-func (e *Extractor) Extract(s interface{}) ([]TypescriptType, error) {
 	e.result = make(map[string]TypescriptType)
 
 	t := reflect.TypeOf(s)
