@@ -3,6 +3,7 @@ Generate TypeScript interfaces from Go structs/interfaces - useful for JSON RPC
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/32leaves/bel)](https://goreportcard.com/report/github.com/32leaves/bel)
 [![GoDoc](https://godoc.org/github.com/32leaves/bel?status.svg)](https://godoc.org/github.com/32leaves/bel)
+[![gocover.run](https://gocover.run/github.com/32leaves/bel.svg?style=flat&tag=1.10)](https://gocover.run?tag=1.10&repo=github.com%2F32leaves%2Fbel)
 [![Stability: Active](https://masterminds.github.io/stability/active.svg)](https://masterminds.github.io/stability/active.html)
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io#github.com/32leaves/bel)
