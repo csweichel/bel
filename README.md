@@ -3,11 +3,14 @@ Generate TypeScript interfaces from Go structs/interfaces - useful for JSON RPC
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/32leaves/bel)](https://goreportcard.com/report/github.com/32leaves/bel)
 [![GoDoc](https://godoc.org/github.com/32leaves/bel?status.svg)](https://godoc.org/github.com/32leaves/bel)
+[![Stability: Active](https://masterminds.github.io/stability/active.svg)](https://masterminds.github.io/stability/active.html)
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io#github.com/32leaves/bel)
 
+`bel` is used in production in https://gitpod.io.
+
 ## Getting started
-`bel` is super easy to use. There are two steps involved: extract the Typescript information, and generate the Typescript code.
+`bel` is easy to use. There are two steps involved: extract the Typescript information, and generate the Typescript code.
 ```Go
 package main
 
