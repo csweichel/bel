@@ -1,15 +1,22 @@
 package bel
 
+// TypescriptKind is the kind of a Typescript type (akin to the kind of Go types)
 type TypescriptKind string
 
 const (
-	TypescriptSimpleKind    TypescriptKind = "simple"
-	TypescriptArrayKind     TypescriptKind = "array"
-	TypescriptMapKind       TypescriptKind = "map"
+	// TypescriptSimpleKind means the type is merely a symbol
+	TypescriptSimpleKind TypescriptKind = "simple"
+	// TypescriptArrayKind means the type is an array
+	TypescriptArrayKind TypescriptKind = "array"
+	// TypescriptMapKind means the type is a map/dict
+	TypescriptMapKind TypescriptKind = "map"
+	// TypescriptInterfaceKind means the type is an interface
 	TypescriptInterfaceKind TypescriptKind = "iface"
-	TypescriptEnumKind      TypescriptKind = "enum"
+	// TypescriptEnumKind means the type is an enum
+	TypescriptEnumKind TypescriptKind = "enum"
 )
 
+// TypescriptType describes a type in the Typescript world
 type TypescriptType struct {
 	Name        string
 	Kind        TypescriptKind
@@ -18,6 +25,7 @@ type TypescriptType struct {
 	EnumMembers []TypescriptEnumMember
 }
 
+// TypescriptMember is a member of a Typescript interface
 type TypescriptMember struct {
 	TypedElement
 	IsOptional bool
@@ -25,11 +33,13 @@ type TypescriptMember struct {
 	Args       []TypedElement
 }
 
+// TypescriptEnumMember is a member of a Typescript enum
 type TypescriptEnumMember struct {
 	Name  string
 	Value string
 }
 
+// TypedElement pairs a name with a type
 type TypedElement struct {
 	Name string
 	Type TypescriptType

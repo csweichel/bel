@@ -19,10 +19,12 @@ type EnumHandler interface {
 	GetMember(t reflect.Type) ([]TypescriptEnumMember, error)
 }
 
+// ParsedSourceEnumHandler discovers enums from type and const statements
 type ParsedSourceEnumHandler struct {
 	enums map[string][]TypescriptEnumMember
 }
 
+// NewParsedSourceEnumHandler creates a new enum handler that parses source code to discover enums
 func NewParsedSourceEnumHandler(srcdir string) (*ParsedSourceEnumHandler, error) {
 	fset := token.NewFileSet()
 	pkgs := make(map[string]*ast.Package)
@@ -100,6 +102,7 @@ func NewParsedSourceEnumHandler(srcdir string) (*ParsedSourceEnumHandler, error)
 	return &ParsedSourceEnumHandler{enums: enums}, nil
 }
 
+// IsEnum returns true if the given type is an enumeration
 func (h *ParsedSourceEnumHandler) IsEnum(t reflect.Type) bool {
 	if _, ok := h.enums[t.Name()]; ok {
 		return true
@@ -108,6 +111,7 @@ func (h *ParsedSourceEnumHandler) IsEnum(t reflect.Type) bool {
 	return false
 }
 
+// GetMember returns all members/values of an enum
 func (h *ParsedSourceEnumHandler) GetMember(t reflect.Type) ([]TypescriptEnumMember, error) {
 	if members, ok := h.enums[t.Name()]; ok {
 		return members, nil

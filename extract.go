@@ -8,7 +8,8 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-type extractOption func(*Extractor)
+// ExtractOption is an option used with the Extract function
+type ExtractOption func(*Extractor)
 
 // AnonStructNamer gives a name to an otherwise anonymous struct
 type AnonStructNamer func(i reflect.StructField) string
@@ -32,42 +33,42 @@ type Extractor struct {
 // EmbedStructs produces a single monolithic structure where all
 // referenced/contained subtypes become a nested Typescript struct
 func EmbedStructs(e *Extractor) {
-    e.embedStructs = true
-    e.followStructs = true
+	e.embedStructs = true
+	e.followStructs = true
 }
 
 // FollowStructs enables transitive extraction of structs. By default
 // we just emit that struct's name.
 func FollowStructs(e *Extractor) {
-    e.followStructs = true
+	e.followStructs = true
 }
 
 // NameAnonStructs enables non-monolithic extraction of anonymous structs.
 // Consider `struct { foo: struct { bar: int } }` where foo has an anonymous
 // struct as type - with NameAnonStructs set, we'd extract that struct as
 // its own Typescript interface.
-func NameAnonStructs(namer AnonStructNamer) extractOption {
-    return func(e *Extractor) {
-        e.noAnonStructs = true
-        e.anonStructNamer = namer
-    }
+func NameAnonStructs(namer AnonStructNamer) ExtractOption {
+	return func(e *Extractor) {
+		e.noAnonStructs = true
+		e.anonStructNamer = namer
+	}
 }
 
 // CustomNamer sets a custom function for translating Golang naming convention
 // to Typescript naming convention. This function does not have to translate
 // the type names, just the way they are written.
-func CustomNamer(namer Namer) extractOption {
-    return func(e *Extractor) {
-        e.typeNamer = namer
-    }
+func CustomNamer(namer Namer) ExtractOption {
+	return func(e *Extractor) {
+		e.typeNamer = namer
+	}
 }
 
 // WithEnumHandler configures an enum handler which detects and extracts enums from
 // types and constants.
-func WithEnumHandler(handler EnumHandler) extractOption {
-    return func(e *Extractor) {
-        e.enumHandler = handler
-    }
+func WithEnumHandler(handler EnumHandler) ExtractOption {
+	return func(e *Extractor) {
+		e.enumHandler = handler
+	}
 }
 
 func (e *Extractor) addResult(t *TypescriptType) {
@@ -75,7 +76,7 @@ func (e *Extractor) addResult(t *TypescriptType) {
 }
 
 // Extract uses reflection to extract the information required to generate Typescript code
-func Extract(s interface{}, opts ...extractOption) ([]TypescriptType, error) {
+func Extract(s interface{}, opts ...ExtractOption) ([]TypescriptType, error) {
 	e := &Extractor{
 		embedStructs:  false,
 		followStructs: false,

@@ -46,43 +46,44 @@ type generateOptions struct {
 	Preamble        string
 }
 
-type generateOption func(*generateOptions)
+// GenerateOption is an option used with the Generate function
+type GenerateOption func(*generateOptions)
 
 // GenerateEnumAsSumType causes enums to be be rendered as sum types
 func GenerateEnumAsSumType(opt *generateOptions) {
-    opt.enumsAsSumTypes = true
+	opt.enumsAsSumTypes = true
 }
 
 // GenerateOutputTo sets the writer to which we'll write the generated TS code
-func GenerateOutputTo(out io.Writer) generateOption {
-    return func(opt *generateOptions) {
-        opt.out = out
-    }
+func GenerateOutputTo(out io.Writer) GenerateOption {
+	return func(opt *generateOptions) {
+		opt.out = out
+	}
 }
 
 // GenerateNamespace produces a namespace in which the generated types live
-func GenerateNamespace(ns string) generateOption {
-    return func(opt *generateOptions) {
-        opt.Namespace = ns
-    }
+func GenerateNamespace(ns string) GenerateOption {
+	return func(opt *generateOptions) {
+		opt.Namespace = ns
+	}
 }
 
-// GenerateAdditionalPreamble produces additional output at the begining of the Typescript code
-func GenerateAdditionalPreamble(preamble string) generateOption {
-    return func(opt *generateOptions) {
-        opt.Preamble += preamble
-    }
+// GenerateAdditionalPreamble produces additional output at the beginning of the Typescript code
+func GenerateAdditionalPreamble(preamble string) GenerateOption {
+	return func(opt *generateOptions) {
+		opt.Preamble += preamble
+	}
 }
 
-// GeneratePreamble produces output at the begining of the Typescript code
-func GeneratePreamble(preamble string) generateOption {
-    return func(opt *generateOptions) {
-        opt.Preamble = preamble
-    }
+// GeneratePreamble produces output at the beginning of the Typescript code
+func GeneratePreamble(preamble string) GenerateOption {
+	return func(opt *generateOptions) {
+		opt.Preamble = preamble
+	}
 }
 
 // Render produces TypeScript code
-func Render(types []TypescriptType, cfg ...generateOption) error {
+func Render(types []TypescriptType, cfg ...GenerateOption) error {
 	opts := generateOptions{
 		out:      os.Stdout,
 		Preamble: fmt.Sprintf("// generated using github.com/32leaves/bel on %s\n// DO NOT MODIFY\n", time.Now()),
@@ -129,9 +130,9 @@ func Render(types []TypescriptType, cfg ...generateOption) error {
 		"subtroot": executeTpl(func(t TypescriptType) string {
 			if t.Kind == TypescriptEnumKind && opts.enumsAsSumTypes {
 				return "root-st-" + string(t.Kind)
-			} else {
-				return "root-" + string(t.Kind)
 			}
+
+			return "root-" + string(t.Kind)
 		}),
 		"default": func(def, val string) string {
 			if val == "" {
