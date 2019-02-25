@@ -34,3 +34,7 @@ func CodeGenCustomization() {
 		panic(err)
 	}
 }
+
+func init() {
+	examples["code-generation"] = CodeGenCustomization
+}

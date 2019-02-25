@@ -21,3 +21,7 @@ func CustomNamer() {
 		panic(err)
 	}
 }
+
+func init() {
+	examples["custom-namer"] = CustomNamer
+}

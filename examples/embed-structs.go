@@ -24,3 +24,7 @@ func EmbedStructs() {
 		panic(err)
 	}
 }
+
+func init() {
+	examples["embed-structs"] = EmbedStructs
+}

@@ -47,3 +47,7 @@ func ExtractEnums() {
 		panic(err)
 	}
 }
+
+func init() {
+	examples["enums"] = ExtractEnums
+}

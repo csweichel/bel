@@ -25,3 +25,7 @@ func FollowStructs() {
 		panic(err)
 	}
 }
+
+func init() {
+	examples["follow-structs"] = FollowStructs
+}

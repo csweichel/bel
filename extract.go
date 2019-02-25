@@ -355,7 +355,6 @@ func (e *Extractor) getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 			Kind:   TypescriptMapKind,
 			Params: []TypescriptType{*key, *elem},
 		}, nil
-		// return mktype(fmt.Sprintf("{ [key: %s]: %s }", key, elem)), nil
 	case reflect.Ptr:
 		return e.getType(t.Elem(), nil)
 	case reflect.String:

@@ -83,6 +83,7 @@ var (
 	}
 )
 
+// Render produces TypeScript code
 func Render(types []TypescriptType, cfg ...generateOption) error {
 	opts := generateOptions{
 		out:      os.Stdout,

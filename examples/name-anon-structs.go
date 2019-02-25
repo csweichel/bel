@@ -28,3 +28,7 @@ func NameAnonStructs() {
 		panic(err)
 	}
 }
+
+func init() {
+	examples["name-anon-structs"] = NameAnonStructs
+}
