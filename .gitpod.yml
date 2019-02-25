@@ -1,4 +1,7 @@
 tasks:
-- init: cd src/github.com/32leaves/bel && go get -v ./... && go get -t ./...
-  command: go build
+- init: cd src/github.com/32leaves/bel && \
+    go get -v ./... && \
+    go get -t ./... && \
+    go test -v ./...
+  command: go run examples/*
 checkoutLocation: src/github.com/32leaves/bel
