@@ -3,6 +3,7 @@ package bel
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -23,6 +24,7 @@ type extractor struct {
 	embedStructs    bool
 	followStructs   bool
 	noAnonStructs   bool
+	sorter          func(a, b interface{}) bool
 	anonStructNamer AnonStructNamer
 	typeNamer       Namer
 	enumHandler     EnumHandler
@@ -71,6 +73,33 @@ func WithEnumHandler(handler EnumHandler) ExtractOption {
 	}
 }
 
+// SortAlphabetically sorts all types and their members alphabetically
+func SortAlphabetically(e *extractor) {
+	sorter := func(a, b interface{}) bool {
+		ta, oka := a.(*TypescriptType)
+		tb, okb := b.(*TypescriptType)
+		if oka && okb {
+			return ta.Name < tb.Name
+		}
+
+		tma, oka := a.(*TypescriptMember)
+		tmb, okb := b.(*TypescriptMember)
+		if oka && okb {
+			return tma.Name < tmb.Name
+		}
+
+		tea, oka := a.(*TypescriptEnumMember)
+		teb, okb := b.(*TypescriptEnumMember)
+		if oka && okb {
+			return tea.Name < teb.Name
+		}
+
+		return false
+	}
+
+	e.sorter = sorter
+}
+
 func (e *extractor) addResult(t *TypescriptType) {
 	e.result[t.Name] = *t
 }
@@ -114,6 +143,11 @@ func Extract(s interface{}, opts ...ExtractOption) ([]TypescriptType, error) {
 	res := make([]TypescriptType, 0)
 	for _, e := range e.result {
 		res = append(res, e)
+	}
+	if e.sorter != nil {
+		sort.Slice(res, func(i, j int) bool {
+			return e.sorter(&res[i], &res[j])
+		})
 	}
 	return res, nil
 }
@@ -173,6 +207,11 @@ func (e *extractor) extractInterface(t reflect.Type) (*TypescriptType, error) {
 		}
 	}
 
+	if e.sorter != nil {
+		sort.Slice(methods, func(i, j int) bool {
+			return e.sorter(&methods[i], &methods[j])
+		})
+	}
 	res := &TypescriptType{
 		Kind:    TypescriptInterfaceKind,
 		Name:    e.typeNamer(t.Name()),
@@ -201,6 +240,11 @@ func (e *extractor) extractStruct(t reflect.Type) (*TypescriptType, error) {
 		}
 	}
 
+	if e.sorter != nil {
+		sort.Slice(fields, func(i, j int) bool {
+			return e.sorter(&fields[i], &fields[j])
+		})
+	}
 	return &TypescriptType{
 		Name:    e.typeNamer(t.Name()),
 		Kind:    TypescriptInterfaceKind,

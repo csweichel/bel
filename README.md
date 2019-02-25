@@ -93,10 +93,15 @@ export interface DemoService {
 You can try all the examples mentioned below in [Gitpod](https://gitpod.io#github.com/32leaves/bel).
 
 ### FollowStructs
-Follow structs enable the transitive generation of types. See See [examples/embed-structs.go](examples/follow-structs.go).
+Follow structs enable the transitive generation of types. See [examples/embed-structs.go](examples/follow-structs.go).
 
 would produce code for the interface `UserService`, as well as the struct it refers to `AddUserRequest`, and `User` because it's referenced by `AddUserRequest`.
 Without `FollowStructs` we'd simply refer to the types by name, but would not generate code for them.
+
+### SortAlphabetically
+SortAlphabetically sorts all types and their members by alphabetical order.
+This produces more deterministic/stable output, which is great for making things comparable across pull requests.
+See [examples/sort-alphabetically.go](examples/sort-alphabetically.go).
 
 ### EmbedStructs
 Embed structs is similar to `FollowStructs` except that it produces a single canonical type for each structure.

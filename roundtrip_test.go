@@ -16,6 +16,9 @@ func TestRoundtrip(t *testing.T) {
 	if !isNpxAvailable() {
 		t.Skip("npm is not available - skipping round trip")
 		return
+	} else if testing.Short() {
+		t.Skip("runnig short test - skipping round trip test")
+		return
 	}
 
 	ws, err := ioutil.TempDir("", "")
