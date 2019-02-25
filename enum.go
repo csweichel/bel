@@ -47,59 +47,68 @@ func NewParsedSourceEnumHandler(srcdir string) (*ParsedSourceEnumHandler, error)
 		return nil, err
 	}
 
+	// the way the enum detection works at the moment this needs to be done in two passes
 	enums := make(map[string][]TypescriptEnumMember)
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Files {
-			ast.Inspect(file, func(node ast.Node) bool {
-				if ts, ok := node.(*ast.TypeSpec); ok {
-					enumName := ts.Name.Name
-					if _, ok := ts.Type.(*ast.Ident); ok {
-						enums[enumName] = make([]TypescriptEnumMember, 0)
-					}
-
-					return false
-				}
-
-				return true
-			})
+			ast.Inspect(file, extractEnumTypes(enums))
 		}
 	}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Files {
-			ast.Inspect(file, func(node ast.Node) bool {
-				if vs, ok := node.(*ast.ValueSpec); ok {
-					if len(vs.Names) < 1 || len(vs.Values) < 1 {
-						// TODO: add logging
-						return false
-					}
-
-					var enumName string
-					if tp, ok := vs.Type.(*ast.Ident); ok {
-						enumName = tp.Name
-					} else {
-						return false
-					}
-
-					if members, ok := enums[enumName]; ok {
-						name := vs.Names[0].Name
-						value := vs.Values[0]
-						if lit, ok := value.(*ast.BasicLit); ok {
-							members = append(members, TypescriptEnumMember{
-								Name:  name,
-								Value: lit.Value,
-							})
-						}
-						enums[enumName] = members
-					}
-					return false
-				}
-
-				return true
-			})
+			ast.Inspect(file, extractEnumValues(enums))
 		}
 	}
 
 	return &ParsedSourceEnumHandler{enums: enums}, nil
+}
+
+func extractEnumTypes(enums map[string][]TypescriptEnumMember) func(node ast.Node) bool {
+	return func(node ast.Node) bool {
+		if ts, ok := node.(*ast.TypeSpec); ok {
+			enumName := ts.Name.Name
+			if _, ok := ts.Type.(*ast.Ident); ok {
+				enums[enumName] = make([]TypescriptEnumMember, 0)
+			}
+
+			return false
+		}
+
+		return true
+	}
+}
+
+func extractEnumValues(enums map[string][]TypescriptEnumMember) func(node ast.Node) bool {
+	return func(node ast.Node) bool {
+		if vs, ok := node.(*ast.ValueSpec); ok {
+			if len(vs.Names) < 1 || len(vs.Values) < 1 {
+				// TODO: add logging
+				return false
+			}
+
+			var enumName string
+			if tp, ok := vs.Type.(*ast.Ident); ok {
+				enumName = tp.Name
+			} else {
+				return false
+			}
+
+			if members, ok := enums[enumName]; ok {
+				name := vs.Names[0].Name
+				value := vs.Values[0]
+				if lit, ok := value.(*ast.BasicLit); ok {
+					members = append(members, TypescriptEnumMember{
+						Name:  name,
+						Value: lit.Value,
+					})
+				}
+				enums[enumName] = members
+			}
+			return false
+		}
+
+		return true
+	}
 }
 
 // IsEnum returns true if the given type is an enumeration
