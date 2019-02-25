@@ -29,48 +29,46 @@ type Extractor struct {
 	result map[string]TypescriptType
 }
 
-var (
-	// EmbedStructs produces a single monolithic structure where all
-	// referenced/contained subtypes become a nested Typescript struct
-	EmbedStructs extractOption = func(e *Extractor) {
-		e.embedStructs = true
-		e.followStructs = true
-	}
+// EmbedStructs produces a single monolithic structure where all
+// referenced/contained subtypes become a nested Typescript struct
+func EmbedStructs(e *Extractor) {
+    e.embedStructs = true
+    e.followStructs = true
+}
 
-	// FollowStructs enables transitive extraction of structs. By default
-	// we just emit that struct's name.
-	FollowStructs extractOption = func(e *Extractor) {
-		e.followStructs = true
-	}
+// FollowStructs enables transitive extraction of structs. By default
+// we just emit that struct's name.
+func FollowStructs(e *Extractor) {
+    e.followStructs = true
+}
 
-	// NameAnonStructs enables non-monolithic extraction of anonymous structs.
-	// Consider `struct { foo: struct { bar: int } }` where foo has an anonymous
-	// struct as type - with NameAnonStructs set, we'd extract that struct as
-	// its own Typescript interface.
-	NameAnonStructs = func(namer AnonStructNamer) extractOption {
-		return func(e *Extractor) {
-			e.noAnonStructs = true
-			e.anonStructNamer = namer
-		}
-	}
+// NameAnonStructs enables non-monolithic extraction of anonymous structs.
+// Consider `struct { foo: struct { bar: int } }` where foo has an anonymous
+// struct as type - with NameAnonStructs set, we'd extract that struct as
+// its own Typescript interface.
+func NameAnonStructs(namer AnonStructNamer) extractOption {
+    return func(e *Extractor) {
+        e.noAnonStructs = true
+        e.anonStructNamer = namer
+    }
+}
 
-	// CustomNamer sets a custom function for translating Golang naming convention
-	// to Typescript naming convention. This function does not have to translate
-	// the type names, just the way they are written.
-	CustomNamer = func(namer Namer) extractOption {
-		return func(e *Extractor) {
-			e.typeNamer = namer
-		}
-	}
+// CustomNamer sets a custom function for translating Golang naming convention
+// to Typescript naming convention. This function does not have to translate
+// the type names, just the way they are written.
+func CustomNamer(namer Namer) extractOption {
+    return func(e *Extractor) {
+        e.typeNamer = namer
+    }
+}
 
-	// WithEnumHandler configures an enum handler which detects and extracts enums from
-	// types and constants.
-	WithEnumHandler = func(handler EnumHandler) extractOption {
-		return func(e *Extractor) {
-			e.enumHandler = handler
-		}
-	}
-)
+// WithEnumHandler configures an enum handler which detects and extracts enums from
+// types and constants.
+func WithEnumHandler(handler EnumHandler) extractOption {
+    return func(e *Extractor) {
+        e.enumHandler = handler
+    }
+}
 
 func (e *Extractor) addResult(t *TypescriptType) {
 	e.result[t.Name] = *t

@@ -48,40 +48,38 @@ type generateOptions struct {
 
 type generateOption func(*generateOptions)
 
-var (
-	// GenerateEnumAsSumType causes enums to be be rendered as sum types
-	GenerateEnumAsSumType generateOption = func(opt *generateOptions) {
-		opt.enumsAsSumTypes = true
-	}
+// GenerateEnumAsSumType causes enums to be be rendered as sum types
+func GenerateEnumAsSumType(opt *generateOptions) {
+    opt.enumsAsSumTypes = true
+}
 
-	// GenerateOutputTo sets the writer to which we'll write the generated TS code
-	GenerateOutputTo = func(out io.Writer) generateOption {
-		return func(opt *generateOptions) {
-			opt.out = out
-		}
-	}
+// GenerateOutputTo sets the writer to which we'll write the generated TS code
+func GenerateOutputTo(out io.Writer) generateOption {
+    return func(opt *generateOptions) {
+        opt.out = out
+    }
+}
 
-	// GenerateNamespace produces a namespace in which the generated types live
-	GenerateNamespace = func(ns string) generateOption {
-		return func(opt *generateOptions) {
-			opt.Namespace = ns
-		}
-	}
+// GenerateNamespace produces a namespace in which the generated types live
+func GenerateNamespace(ns string) generateOption {
+    return func(opt *generateOptions) {
+        opt.Namespace = ns
+    }
+}
 
-	// GenerateAdditionalPreamble produces additional output at the begining of the Typescript code
-	GenerateAdditionalPreamble = func(preamble string) generateOption {
-		return func(opt *generateOptions) {
-			opt.Preamble += preamble
-		}
-	}
+// GenerateAdditionalPreamble produces additional output at the begining of the Typescript code
+func GenerateAdditionalPreamble(preamble string) generateOption {
+    return func(opt *generateOptions) {
+        opt.Preamble += preamble
+    }
+}
 
-	// GeneratePreamble produces output at the begining of the Typescript code
-	GeneratePreamble = func(preamble string) generateOption {
-		return func(opt *generateOptions) {
-			opt.Preamble = preamble
-		}
-	}
-)
+// GeneratePreamble produces output at the begining of the Typescript code
+func GeneratePreamble(preamble string) generateOption {
+    return func(opt *generateOptions) {
+        opt.Preamble = preamble
+    }
+}
 
 // Render produces TypeScript code
 func Render(types []TypescriptType, cfg ...generateOption) error {
