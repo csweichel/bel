@@ -1,8 +1,10 @@
 package bel
 
 import (
-	// "github.com/alecthomas/repr"
+	"sort"
 	"testing"
+
+	_ "github.com/alecthomas/repr"
 
 	"github.com/go-test/deep"
 )
@@ -42,6 +44,7 @@ func TestParseStringEnum(t *testing.T) {
 		t.Errorf("did not find MyEnum enum in sources")
 		return
 	}
+	sort.Slice(myenum, func(ia, ib int) bool { return myenum[ia].Name < myenum[ib].Name })
 
 	expectation := []TypescriptEnumMember{
 		{
@@ -49,12 +52,12 @@ func TestParseStringEnum(t *testing.T) {
 			Value: "\"member-one\"",
 		},
 		{
-			Name:  "MemberTwo",
-			Value: "\"member-two\"",
-		},
-		{
 			Name:  "MemberThree",
 			Value: "\"member-three\"",
+		},
+		{
+			Name:  "MemberTwo",
+			Value: "\"member-two\"",
 		},
 	}
 	diff := deep.Equal(expectation, myenum)
@@ -75,6 +78,7 @@ func TestParseIntEnum(t *testing.T) {
 		t.Errorf("did not find MyOtherEnum enum in sources")
 		return
 	}
+	sort.Slice(enum, func(ia, ib int) bool { return enum[ia].Value < enum[ib].Value })
 
 	expectation := []TypescriptEnumMember{
 		{
@@ -112,6 +116,11 @@ func TestExtractIntEnum(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	sort.Slice(extract, func(ia, ib int) bool { return extract[ia].Name < extract[ib].Name })
+	for i := range extract {
+		sort.Slice(extract[i].Members, func(ia, ib int) bool { return extract[i].Members[ia].Name < extract[i].Members[ib].Name })
+		sort.Slice(extract[i].EnumMembers, func(ia, ib int) bool { return extract[i].EnumMembers[ia].Value < extract[i].EnumMembers[ib].Value })
+	}
 
 	expectation := []TypescriptType{
 		{
@@ -123,12 +132,12 @@ func TestExtractIntEnum(t *testing.T) {
 					Value: "\"member-one\"",
 				},
 				{
-					Name:  "MemberTwo",
-					Value: "\"member-two\"",
-				},
-				{
 					Name:  "MemberThree",
 					Value: "\"member-three\"",
+				},
+				{
+					Name:  "MemberTwo",
+					Value: "\"member-two\"",
 				},
 			},
 		},
@@ -160,15 +169,6 @@ func TestExtractIntEnum(t *testing.T) {
 			Members: []TypescriptMember{
 				{
 					TypedElement: TypedElement{
-						Name: "Foo",
-						Type: TypescriptType{
-							Name: "MyEnum",
-							Kind: TypescriptKind("simple"),
-						},
-					},
-				},
-				{
-					TypedElement: TypedElement{
 						Name: "Bar",
 						Type: TypescriptType{
 							Name: "MyOtherEnum",
@@ -181,6 +181,15 @@ func TestExtractIntEnum(t *testing.T) {
 						Name: "Baz",
 						Type: TypescriptType{
 							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "Foo",
+						Type: TypescriptType{
+							Name: "MyEnum",
 							Kind: TypescriptKind("simple"),
 						},
 					},

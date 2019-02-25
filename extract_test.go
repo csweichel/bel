@@ -2,6 +2,7 @@ package bel
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -147,6 +148,7 @@ func TestNameAnonStructs(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	sort.Slice(extract, func(ia, ib int) bool { return extract[ia].Name < extract[ib].Name })
 
 	// best generated with
 	// repr.Print(extract)
@@ -214,6 +216,7 @@ func TestFollowStruct(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	sort.Slice(extract, func(ia, ib int) bool { return extract[ia].Name < extract[ib].Name })
 
 	// best generated with
 	// repr.Print(extract)
@@ -300,6 +303,7 @@ func TestEmbeddStruct(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	sort.Slice(extract, func(ia, ib int) bool { return extract[ia].Name < extract[ib].Name })
 
 	// best generated with
 	// repr.Print(extract)
