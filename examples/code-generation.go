@@ -6,11 +6,13 @@ import (
 	"github.com/32leaves/bel"
 )
 
+// HelloWorld is a simple example struct
 type HelloWorld struct {
 	Name    string
 	Message string
 }
 
+// CodeGenCustomization demonstrates how to customize code generation
 func CodeGenCustomization() {
 	extract, err := bel.Extract(HelloWorld{})
 	if err != nil {

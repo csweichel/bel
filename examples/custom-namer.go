@@ -4,9 +4,11 @@ import (
 	"github.com/32leaves/bel"
 )
 
+// ThisStructsName is an empty struct
 type ThisStructsName struct {
 }
 
+// CustomNamer demonstrates how to use custom type naming
 func CustomNamer() {
 	namer := func(n string) string {
 		return "Complete" + n
