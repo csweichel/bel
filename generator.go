@@ -10,9 +10,17 @@ import (
 )
 
 const interfaceTemplate = `
+{{ define "comment" -}}
+{{- if .Comment }}
+/**
+ * {{ .Comment }}
+ */
+{{ end -}}
+{{ end -}}
 {{ define "iface" -}}
 {
     {{ range .Members -}}
+    {{- template "comment" . -}}
     {{ .Name }}{{ if .IsOptional }}?{{ end }}{{ if .IsFunction }}({{ template "args" . }}){{ end }}: {{ subt .Type | default "void" }}
     {{ end }}
 }
@@ -21,14 +29,14 @@ const interfaceTemplate = `
 {{- define "simple" }}{{ .Name }}{{ end -}}
 {{- define "map" }}{ [key: {{ subt (mapKeyType .) }}]: {{ subt (mapValType .) }} }{{ end -}}
 {{- define "array" }}{{ subt (arrType .) }}[]{{ end -}}
-{{- define "root-enum" }}export enum {{ .Name }} {
+{{- define "root-enum" }}{{- template "comment" . -}}export enum {{ .Name }} {
     {{ range .EnumMembers }}{{ .Name }} = {{ .Value }},
     {{ end }}
 }{{ end -}}
-{{- define "root-st-enum" }}export type {{ .Name }} =
+{{- define "root-st-enum" }}{{- template "comment" . -}}export type {{ .Name }} =
     {{ range $idx, $val := .EnumMembers }}{{ if eq $idx 0 }}{{ else }} | {{ end }}{{ .Value }}{{ end }};
 {{ end -}}
-{{- define "root-iface" }} export interface {{ .Name }} {{ template "iface" . }} {{ end -}}
+{{- define "root-iface" }}{{- template "comment" . -}}export interface {{ .Name }} {{ template "iface" . }} {{ end -}}
 {{- .Preamble }}
 {{ if .Namespace }}export namespace {{ .Namespace }} {
     {{ end -}}

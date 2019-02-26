@@ -41,7 +41,7 @@ func ExtractEnums() {
 		panic(err)
 	}
 
-	ts, err := bel.Extract(SomeStruct{}, bel.WithEnumHandler(handler))
+	ts, err := bel.Extract(SomeStruct{}, bel.WithEnumerations(handler))
 	if err != nil {
 		panic(err)
 	}

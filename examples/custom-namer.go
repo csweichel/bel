@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/32leaves/bel"
 	"reflect"
+
+	"github.com/32leaves/bel"
 )
 
 // ThisStructsName is an empty struct

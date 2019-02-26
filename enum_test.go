@@ -111,7 +111,7 @@ func TestExtractIntEnum(t *testing.T) {
 		return
 	}
 
-	extract, err := Extract(StructWithEnum{}, WithEnumHandler(handler))
+	extract, err := Extract(StructWithEnum{}, WithEnumerations(handler))
 	if err != nil {
 		t.Error(err)
 		return

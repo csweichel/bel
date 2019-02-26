@@ -16,7 +16,7 @@ func TestGenerateStuff(t *testing.T) {
 	}
 
 	extract, err := Extract((*DemoService)(nil),
-		WithEnumHandler(handler),
+		WithEnumerations(handler),
 		FollowStructs,
 	)
 	if err != nil {

@@ -19,6 +19,7 @@ const (
 // TypescriptType describes a type in the Typescript world
 type TypescriptType struct {
 	Name        string
+	Comment     string
 	Kind        TypescriptKind
 	Members     []TypescriptMember
 	Params      []TypescriptType
@@ -28,6 +29,7 @@ type TypescriptType struct {
 // TypescriptMember is a member of a Typescript interface
 type TypescriptMember struct {
 	TypedElement
+	Comment    string
 	IsOptional bool
 	IsFunction bool
 	Args       []TypedElement
@@ -35,8 +37,9 @@ type TypescriptMember struct {
 
 // TypescriptEnumMember is a member of a Typescript enum
 type TypescriptEnumMember struct {
-	Name  string
-	Value string
+	Name    string
+	Value   string
+	Comment string
 }
 
 // TypedElement pairs a name with a type

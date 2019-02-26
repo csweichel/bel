@@ -11,11 +11,13 @@ type User struct {
 
 // AddUserRequest is the single prameter to create users
 type AddUserRequest struct {
+	// NewUser is the user to add
 	NewUser User
 }
 
 // UserService enables the creation of users
 type UserService interface {
+	// AddUser creates a new user
 	AddUser(AddUserRequest) error
 }
 

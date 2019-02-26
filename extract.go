@@ -28,6 +28,7 @@ type extractor struct {
 	anonStructNamer AnonStructNamer
 	typeNamer       TypeNamer
 	enumHandler     EnumHandler
+	docHandler      DocHandler
 
 	result map[string]TypescriptType
 }
@@ -65,11 +66,19 @@ func CustomNamer(namer TypeNamer) ExtractOption {
 	}
 }
 
-// WithEnumHandler configures an enum handler which detects and extracts enums from
+// WithEnumerations configures an enum handler which detects and extracts enums from
 // types and constants.
-func WithEnumHandler(handler EnumHandler) ExtractOption {
+func WithEnumerations(handler EnumHandler) ExtractOption {
 	return func(e *extractor) {
 		e.enumHandler = handler
+	}
+}
+
+// WithDocumentation configures a documentation handler which extracts documentation
+// for types and methods.
+func WithDocumentation(handler DocHandler) ExtractOption {
+	return func(e *extractor) {
+		e.docHandler = handler
 	}
 }
 
@@ -112,6 +121,7 @@ func Extract(s interface{}, opts ...ExtractOption) ([]TypescriptType, error) {
 		typeNamer: func(t reflect.Type) string {
 			return strcase.ToCamel(t.Name())
 		},
+		docHandler: (*nullDocHandler)(nil),
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -204,6 +214,7 @@ func (e *extractor) extractInterface(t reflect.Type) (*TypescriptType, error) {
 				Name: tm.Name,
 				Type: retval,
 			},
+			Comment:    e.docHandler.Method(t, tm),
 			IsFunction: true,
 			Args:       args,
 		}
@@ -218,6 +229,7 @@ func (e *extractor) extractInterface(t reflect.Type) (*TypescriptType, error) {
 		Kind:    TypescriptInterfaceKind,
 		Name:    e.typeNamer(t),
 		Members: methods,
+		Comment: e.docHandler.Type(t),
 	}
 	return res, nil
 }
@@ -249,6 +261,7 @@ func (e *extractor) extractStruct(t reflect.Type) (*TypescriptType, error) {
 	}
 	return &TypescriptType{
 		Name:    e.typeNamer(t),
+		Comment: e.docHandler.Type(t),
 		Kind:    TypescriptInterfaceKind,
 		Members: fields,
 	}, nil

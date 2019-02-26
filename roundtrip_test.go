@@ -81,7 +81,7 @@ func generateTypescript(t *testing.T, ws string, testdata MyTestStruct) bool {
 	}
 
 	extract, err := Extract(MyTestStruct{},
-		WithEnumHandler(handler),
+		WithEnumerations(handler),
 		FollowStructs,
 	)
 	if err != nil {
