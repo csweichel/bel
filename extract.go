@@ -13,11 +13,11 @@ import (
 type ExtractOption func(*extractor)
 
 // AnonStructNamer gives a name to an otherwise anonymous struct
-type AnonStructNamer func(i reflect.StructField) string
+type AnonStructNamer func(reflect.StructField) string
 
-// Namer translates Go type name convention to Typescript name convention.
-// This function does not have to translate between Go types and Typescript types.
-type Namer func(string) string
+// TypeNamer translates Go type name convention to Typescript name convention.
+// This function does not have to map Go types to Typescript types.
+type TypeNamer func(reflect.Type) string
 
 // extractor pulls Typescript information from a Go structure
 type extractor struct {
@@ -26,7 +26,7 @@ type extractor struct {
 	noAnonStructs   bool
 	sorter          func(a, b interface{}) bool
 	anonStructNamer AnonStructNamer
-	typeNamer       Namer
+	typeNamer       TypeNamer
 	enumHandler     EnumHandler
 
 	result map[string]TypescriptType
@@ -59,7 +59,7 @@ func NameAnonStructs(namer AnonStructNamer) ExtractOption {
 // CustomNamer sets a custom function for translating Golang naming convention
 // to Typescript naming convention. This function does not have to translate
 // the type names, just the way they are written.
-func CustomNamer(namer Namer) ExtractOption {
+func CustomNamer(namer TypeNamer) ExtractOption {
 	return func(e *extractor) {
 		e.typeNamer = namer
 	}
@@ -109,7 +109,9 @@ func Extract(s interface{}, opts ...ExtractOption) ([]TypescriptType, error) {
 	e := &extractor{
 		embedStructs:  false,
 		followStructs: false,
-		typeNamer:     strcase.ToCamel,
+		typeNamer: func(t reflect.Type) string {
+			return strcase.ToCamel(t.Name())
+		},
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -214,7 +216,7 @@ func (e *extractor) extractInterface(t reflect.Type) (*TypescriptType, error) {
 	}
 	res := &TypescriptType{
 		Kind:    TypescriptInterfaceKind,
-		Name:    e.typeNamer(t.Name()),
+		Name:    e.typeNamer(t),
 		Members: methods,
 	}
 	return res, nil
@@ -246,7 +248,7 @@ func (e *extractor) extractStruct(t reflect.Type) (*TypescriptType, error) {
 		})
 	}
 	return &TypescriptType{
-		Name:    e.typeNamer(t.Name()),
+		Name:    e.typeNamer(t),
 		Kind:    TypescriptInterfaceKind,
 		Members: fields,
 	}, nil
@@ -301,7 +303,7 @@ func (e *extractor) getType(ttype reflect.Type, t *reflect.StructField) (*Typesc
 			}
 
 			if e.noAnonStructs {
-				astructName := e.typeNamer(e.anonStructNamer(*t))
+				astructName := e.anonStructNamer(*t)
 				astruct.Name = astructName
 				e.addResult(astruct)
 				tstype = &TypescriptType{Name: astructName, Kind: TypescriptSimpleKind}
@@ -325,7 +327,7 @@ func (e *extractor) getType(ttype reflect.Type, t *reflect.StructField) (*Typesc
 			e.addResult(astruct)
 			tstype = &TypescriptType{Name: astruct.Name, Kind: TypescriptSimpleKind}
 		} else {
-			tstype = &TypescriptType{Name: ttype.Name(), Kind: TypescriptSimpleKind}
+			tstype = &TypescriptType{Name: e.typeNamer(ttype), Kind: TypescriptSimpleKind}
 		}
 	} else if e.enumHandler != nil && e.enumHandler.IsEnum(ttype) {
 		em, err := e.enumHandler.GetMember(ttype)
@@ -333,12 +335,12 @@ func (e *extractor) getType(ttype reflect.Type, t *reflect.StructField) (*Typesc
 			return nil, err
 		}
 		enum := &TypescriptType{
-			Name:        e.typeNamer(ttype.Name()),
+			Name:        e.typeNamer(ttype),
 			Kind:        TypescriptEnumKind,
 			EnumMembers: em,
 		}
 		e.addResult(enum)
-		tstype = &TypescriptType{Name: e.typeNamer(ttype.Name()), Kind: TypescriptSimpleKind}
+		tstype = &TypescriptType{Name: e.typeNamer(ttype), Kind: TypescriptSimpleKind}
 	} else {
 		res, err := e.getPrimitiveType(ttype)
 		if err != nil {
