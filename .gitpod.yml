@@ -1,7 +1,6 @@
 tasks:
-- init: cd /workspace/go/src/github.com/32leaves/bel &&
-    go get -v ./... &&
-    go get -t ./... &&
+- init: cd /workspace/bel &&
+    go get -v &&
     go test -v ./...
-  command: cd /workspace/go/src/github.com/32leaves/bel && go run examples/*
-checkoutLocation: go/src/github.com/32leaves/bel
+  command: cd /workspace/bel && go run examples/*
+checkoutLocation: bel
