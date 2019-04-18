@@ -1,10 +1,12 @@
 package bel
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -157,5 +159,29 @@ func Render(types []TypescriptType, cfg ...GenerateOption) error {
 	}
 
 	opts.Types = types
-	return tpl.Execute(opts.out, opts)
+
+	r, w := io.Pipe()
+	scanner := bufio.NewScanner(r)
+	go func() {
+		emptylines := 0
+		for scanner.Scan() {
+			line := scanner.Text()
+			trimline := strings.TrimSpace(line)
+
+			if trimline != "" {
+				if emptylines > 1 {
+					fmt.Fprintln(opts.out)
+				}
+				fmt.Fprintln(opts.out, line)
+			}
+
+			if trimline == "" {
+				emptylines++
+			} else {
+				emptylines = 0
+			}
+		}
+	}()
+
+	return tpl.Execute(w, opts)
 }

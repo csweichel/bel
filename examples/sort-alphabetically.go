@@ -31,7 +31,7 @@ func SortAlphabetically() {
 		panic(err)
 	}
 
-	err = bel.Render(ts, bel.GenerateAdditionalPreamble("// Note the alphabetical order which is unlike the \"natural\" order of the types and fields"))
+	err = bel.Render(ts, bel.GenerateAdditionalPreamble("// Note the alphabetical order which is unlike the \"natural\" order of the types and fields\n"))
 	if err != nil {
 		panic(err)
 	}
