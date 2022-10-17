@@ -384,8 +384,10 @@ func (e *extractor) getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 		}
 	}
 
-	if name := e.primitiveNamer(t); name != "" {
-		return mktype(name), nil
+	if e.primitiveNamer != nil {
+		if name := e.primitiveNamer(t); name != "" {
+			return mktype(name), nil
+		}
 	}
 
 	kind := t.Kind()
