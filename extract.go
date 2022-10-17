@@ -27,6 +27,7 @@ type extractor struct {
 	sorter          func(a, b interface{}) bool
 	anonStructNamer AnonStructNamer
 	typeNamer       TypeNamer
+	primitiveNamer  TypeNamer
 	enumHandler     EnumHandler
 	docHandler      DocHandler
 
@@ -63,6 +64,16 @@ func NameAnonStructs(namer AnonStructNamer) ExtractOption {
 func CustomNamer(namer TypeNamer) ExtractOption {
 	return func(e *extractor) {
 		e.typeNamer = namer
+	}
+}
+
+// PrimitiveNamer sets a custom function for translating Golang naming convention
+// to Typescript naming convention for primitive types. This function does not have to translate
+// the type names, just the way they are written.
+// Returning an empty string will cause bel to use the underlying primitive type
+func PrimitiveNamer(namer TypeNamer) ExtractOption {
+	return func(e *extractor) {
+		e.primitiveNamer = namer
 	}
 }
 
@@ -371,6 +382,10 @@ func (e *extractor) getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 			Kind: TypescriptSimpleKind,
 			Name: n,
 		}
+	}
+
+	if name := e.primitiveNamer(t); name != "" {
+		return mktype(name), nil
 	}
 
 	kind := t.Kind()
