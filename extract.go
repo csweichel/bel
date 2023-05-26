@@ -31,6 +31,8 @@ type extractor struct {
 	docHandler      DocHandler
 
 	result map[string]TypescriptType
+
+	customTypeMapping map[reflect.Kind]*TypescriptType
 }
 
 // EmbedStructs produces a single monolithic structure where all
@@ -82,6 +84,12 @@ func WithDocumentation(handler DocHandler) ExtractOption {
 	}
 }
 
+func TypeMapping(kind reflect.Kind, ty *TypescriptType) ExtractOption {
+	return func(e *extractor) {
+		e.customTypeMapping[kind] = ty
+	}
+}
+
 // SortAlphabetically sorts all types and their members alphabetically
 func SortAlphabetically(e *extractor) {
 	sorter := func(a, b interface{}) bool {
@@ -121,7 +129,8 @@ func Extract(s interface{}, opts ...ExtractOption) ([]TypescriptType, error) {
 		typeNamer: func(t reflect.Type) string {
 			return strcase.ToCamel(t.Name())
 		},
-		docHandler: (*nullDocHandler)(nil),
+		docHandler:        (*nullDocHandler)(nil),
+		customTypeMapping: map[reflect.Kind]*TypescriptType{},
 	}
 	for _, opt := range opts {
 		opt(e)
@@ -374,6 +383,10 @@ func (e *extractor) getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 	}
 
 	kind := t.Kind()
+	if mapping, ok := e.customTypeMapping[kind]; ok {
+		return mapping, nil
+	}
+
 	switch kind {
 	case reflect.Bool:
 		return mktype("boolean"), nil
