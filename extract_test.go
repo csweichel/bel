@@ -51,6 +51,13 @@ type NestedStruct struct {
 	}
 }
 
+type OmitZeroStruct struct {
+	StringField        string
+	OptionalField      string `json:",omitzero"`
+	NamedOptionalField int32  `json:"thisIsOptional,omitzero"`
+	BothField          string `json:"both,omitempty,omitzero"`
+}
+
 // AnotherTestStruct is just yet another struct
 type AnotherTestStruct struct {
 	// Foo has some documentation
@@ -129,6 +136,93 @@ func TestExtractStruct(t *testing.T) {
 							Kind: TypescriptKind("simple"),
 						},
 					},
+				},
+			},
+		},
+	}
+	diff := deep.Equal(expectation, extract)
+	for _, d := range diff {
+		t.Error(d)
+	}
+}
+
+func TestTypeScriptTypeName(t *testing.T) {
+	tests := []struct {
+		Input       string
+		Expectation string
+	}{
+		{"", ""},
+		{"MyTestStruct", "MyTestStruct"},
+		{"fooBar", "FooBar"},
+		{"t", "T"},
+		// acronyms must stay intact
+		{"ID", "ID"},
+		{"HTTPServer", "HTTPServer"},
+		{"ATypeStartingWithA", "ATypeStartingWithA"},
+		// instantiated generics carry their type arguments in the reflect name
+		{"Pair[string,int]", "Pairstringint"},
+		{"Pair[main.Inner,[]uint8]", "PairmainInneruint8"},
+		// legal in a TypeScript identifier, hence kept
+		{"Under_Score", "Under_Score"},
+		{"ünicode", "Ünicode"},
+	}
+	for _, test := range tests {
+		if act := typeScriptTypeName(test.Input); act != test.Expectation {
+			t.Errorf("typeScriptTypeName(%q) == %q, expected %q", test.Input, act, test.Expectation)
+		}
+	}
+}
+
+func TestExtractOmitZero(t *testing.T) {
+	extract, err := Extract(OmitZeroStruct{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	expectation := []TypescriptType{
+		{
+			Name: "OmitZeroStruct",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "StringField",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "OptionalField",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsOptional: true,
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "thisIsOptional",
+						Type: TypescriptType{
+							Name: "number",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsOptional: true,
+				},
+				{
+					TypedElement: TypedElement{
+						Name: "both",
+						Type: TypescriptType{
+							Name: "string",
+							Kind: TypescriptKind("simple"),
+						},
+					},
+					IsOptional: true,
 				},
 			},
 		},

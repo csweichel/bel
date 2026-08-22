@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-
-	"github.com/iancoleman/strcase"
+	"unicode"
+	"unicode/utf8"
 )
 
 // ExtractOption is an option used with the Extract function
@@ -27,6 +27,7 @@ type extractor struct {
 	sorter          func(a, b interface{}) bool
 	anonStructNamer AnonStructNamer
 	typeNamer       TypeNamer
+	primitiveNamer  TypeNamer
 	enumHandler     EnumHandler
 	docHandler      DocHandler
 
@@ -63,6 +64,16 @@ func NameAnonStructs(namer AnonStructNamer) ExtractOption {
 func CustomNamer(namer TypeNamer) ExtractOption {
 	return func(e *extractor) {
 		e.typeNamer = namer
+	}
+}
+
+// PrimitiveNamer sets a custom function for translating Golang naming convention
+// to Typescript naming convention for primitive types. This function does not have to translate
+// the type names, just the way they are written.
+// Returning an empty string will cause bel to use the underlying primitive type
+func PrimitiveNamer(namer TypeNamer) ExtractOption {
+	return func(e *extractor) {
+		e.primitiveNamer = namer
 	}
 }
 
@@ -113,13 +124,36 @@ func (e *extractor) addResult(t *TypescriptType) {
 	e.result[t.Name] = *t
 }
 
+// typeScriptTypeName turns a Go type name into a valid TypeScript identifier: it
+// drops runes TypeScript does not allow in an identifier and upper-cases the first
+// one. Dropping matters for instantiated generics, whose reflect name carries the
+// type arguments, e.g. Pair[string,int] becomes Pairstringint.
+//
+// Unlike a general camel-casing this leaves the rest of the name alone, so acronyms
+// survive: HTTPServer stays HTTPServer rather than becoming Httpserver.
+func typeScriptTypeName(s string) string {
+	var name strings.Builder
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '$' {
+			name.WriteRune(r)
+		}
+	}
+
+	res := name.String()
+	if res == "" {
+		return res
+	}
+	r, size := utf8.DecodeRuneInString(res)
+	return string(unicode.ToUpper(r)) + res[size:]
+}
+
 // Extract uses reflection to extract the information required to generate Typescript code
 func Extract(s interface{}, opts ...ExtractOption) ([]TypescriptType, error) {
 	e := &extractor{
 		embedStructs:  false,
 		followStructs: false,
 		typeNamer: func(t reflect.Type) string {
-			return strcase.ToCamel(t.Name())
+			return typeScriptTypeName(t.Name())
 		},
 		docHandler: (*nullDocHandler)(nil),
 	}
@@ -285,7 +319,9 @@ func (e *extractor) extractStructField(t reflect.StructField) (*TypescriptMember
 			segments = segments[1:]
 		}
 		for _, seg := range segments {
-			if seg == "omitempty" {
+			// omitzero is the Go 1.24+/encoding/json/v2 equivalent of omitempty:
+			// both make the field absent from the JSON output.
+			if seg == "omitempty" || seg == "omitzero" {
 				optional = true
 			}
 		}
@@ -353,7 +389,7 @@ func (e *extractor) getType(ttype reflect.Type, t *reflect.StructField) (*Typesc
 			EnumMembers: em,
 		}
 		e.addResult(enum)
-		tstype = &TypescriptType{Name: e.typeNamer(ttype), Kind: TypescriptSimpleKind}
+		tstype = &TypescriptType{Name: e.typeNamer(ttype), Kind: TypescriptSimpleKind, IsEnum: true}
 	} else {
 		res, err := e.getPrimitiveType(ttype)
 		if err != nil {
@@ -370,6 +406,12 @@ func (e *extractor) getPrimitiveType(t reflect.Type) (*TypescriptType, error) {
 		return &TypescriptType{
 			Kind: TypescriptSimpleKind,
 			Name: n,
+		}
+	}
+
+	if e.primitiveNamer != nil {
+		if name := e.primitiveNamer(t); name != "" {
+			return mktype(name), nil
 		}
 	}
 

@@ -3,7 +3,7 @@ package main
 import (
 	"reflect"
 
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // ThisStructsName is an empty struct

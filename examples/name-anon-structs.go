@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // NestedStuff contains a nested anonymous enum

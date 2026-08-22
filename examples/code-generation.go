@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // HelloWorld is a simple example struct

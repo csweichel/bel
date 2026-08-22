@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // WithDocumentation demonstrates how to extract documentation
 func WithDocumentation() {
-	handler, err := bel.NewParsedSourceDocHandler(".", "github.com/32leaves")
+	handler, err := bel.NewParsedSourceDocHandler(".", "github.com/laknoll")
 	if err != nil {
 		panic(err)
 	}

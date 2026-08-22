@@ -30,3 +30,31 @@ func TestGenerateStuff(t *testing.T) {
 		return
 	}
 }
+
+type TestStruct struct {
+	WithMinus   int `json:"with-minus"`
+	NormalField string
+}
+
+func TestGenerateValidTypeScriptNames(t *testing.T) {
+	handler, err := NewParsedSourceEnumHandler(".")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	extract, err := Extract(TestStruct{},
+		WithEnumerations(handler),
+		FollowStructs,
+	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = Render(extract)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}

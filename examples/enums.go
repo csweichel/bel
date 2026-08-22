@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // StringEnum is an enumeration with string values

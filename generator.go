@@ -23,13 +23,13 @@ const interfaceTemplate = `
 {
     {{ range .Members -}}
     {{- template "comment" . -}}
-    {{ .Name }}{{ if .IsOptional }}?{{ end }}{{ if .IsFunction }}({{ template "args" . }}){{ end }}: {{ subt .Type | default "void" }}
+    {{ validTypeScriptName .Name }}{{ if .IsOptional }}?{{ end }}{{ if .IsFunction }}({{ template "args" . }}){{ end }}: {{ subt .Type | default "void" }}
     {{ end }}
 }
 {{ end -}}
 {{- define "args" }}{{ range $idx, $val := .Args }}{{ if eq $idx 0 }}{{ else }}, {{ end }}{{ .Name }}: {{ subt .Type }}{{ end }}{{ end -}}
 {{- define "simple" }}{{ .Name }}{{ end -}}
-{{- define "map" }}{ [key: {{ subt (mapKeyType .) }}]: {{ subt (mapValType .) }} }{{ end -}}
+{{- define "map" }}{ [{{ if ( isEnumKey . ) }}key in{{ else }}key:{{ end }} {{ subt (mapKeyType .) }}]: {{ subt (mapValType .) }} }{{ end -}}
 {{- define "array" }}{{ subt (arrType .) }}[]{{ end -}}
 {{- define "root-enum" }}{{- template "comment" . -}}export enum {{ .Name }} {
     {{ range .EnumMembers }}{{ .Name }} = {{ .Value }},
@@ -96,7 +96,7 @@ func GeneratePreamble(preamble string) GenerateOption {
 func Render(types []TypescriptType, cfg ...GenerateOption) error {
 	opts := generateOptions{
 		out:      os.Stdout,
-		Preamble: fmt.Sprintf("// generated using github.com/32leaves/bel on %s\n// DO NOT MODIFY\n", time.Now()),
+		Preamble: fmt.Sprintf("// generated using github.com/laknoll/bel on %s\n// DO NOT MODIFY\n", time.Now()),
 	}
 	for _, c := range cfg {
 		c(&opts)
@@ -132,7 +132,16 @@ func Render(types []TypescriptType, cfg ...GenerateOption) error {
 		}
 	}
 
+	isEnumKey := func(t TypescriptType) bool {
+		if len(t.Params) < 2 {
+			return false
+		}
+		keyType := t.Params[0]
+		return keyType.IsEnum
+	}
+
 	funcs := template.FuncMap{
+		"isEnumKey":  isEnumKey,
 		"mapKeyType": getParam("map", 0, 2),
 		"mapValType": getParam("map", 1, 2),
 		"arrType":    getParam("array", 0, 1),
@@ -144,6 +153,12 @@ func Render(types []TypescriptType, cfg ...GenerateOption) error {
 
 			return "root-" + string(t.Kind)
 		}),
+		"validTypeScriptName": func(name string) string {
+			if strings.Contains(name, "-") {
+				name = "\"" + name + "\""
+			}
+			return name
+		},
 		"default": func(def, val string) string {
 			if val == "" {
 				return def

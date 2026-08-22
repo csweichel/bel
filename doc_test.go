@@ -1,6 +1,7 @@
 package bel
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -19,7 +20,7 @@ type DoSomethingReq struct {
 }
 
 func TestParsedSourceDocHandler(t *testing.T) {
-	handler, err := NewParsedSourceDocHandler(".", "github.com/32leaves/")
+	handler, err := NewParsedSourceDocHandler(".", "github.com/laknoll/")
 	if err != nil {
 		t.Error(err)
 		return
@@ -30,6 +31,7 @@ func TestParsedSourceDocHandler(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	sort.Slice(extract, func(ia, ib int) bool { return extract[ia].Name < extract[ib].Name })
 
 	expectation := []TypescriptType{
 		{

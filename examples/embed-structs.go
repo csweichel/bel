@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // ReferencedStruct is a struct referenced by HasAReference

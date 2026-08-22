@@ -21,7 +21,8 @@ func TestRoundtrip(t *testing.T) {
 		return
 	}
 
-	ws, err := ioutil.TempDir("", "")
+	ws, err := os.MkdirTemp("", "")
+	fmt.Printf("using workspace: %s\n", ws)
 	if !installTsNode(t, ws) {
 		return
 	}

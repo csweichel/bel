@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // User is a struct describing users

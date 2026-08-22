@@ -21,6 +21,7 @@ type TypescriptType struct {
 	Name        string
 	Comment     string
 	Kind        TypescriptKind
+	IsEnum      bool // this type is an enum, needed so we generate map keys correctly
 	Members     []TypescriptMember
 	Params      []TypescriptType
 	EnumMembers []TypescriptEnumMember

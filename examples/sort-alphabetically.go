@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/32leaves/bel"
+	"github.com/laknoll/bel"
 )
 
 // StructB is a structure with non-alphabetically sorted fields

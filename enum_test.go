@@ -32,6 +32,10 @@ type StructWithEnum struct {
 	Baz string
 }
 
+type StructWithEnumMap struct {
+	EnumMap map[MyEnum]string
+}
+
 func TestParseStringEnum(t *testing.T) {
 	handler, err := NewParsedSourceEnumHandler(".")
 	if err != nil {
@@ -171,8 +175,9 @@ func TestExtractIntEnum(t *testing.T) {
 					TypedElement: TypedElement{
 						Name: "Bar",
 						Type: TypescriptType{
-							Name: "MyOtherEnum",
-							Kind: TypescriptKind("simple"),
+							Name:   "MyOtherEnum",
+							Kind:   TypescriptKind("simple"),
+							IsEnum: true,
 						},
 					},
 				},
@@ -189,14 +194,84 @@ func TestExtractIntEnum(t *testing.T) {
 					TypedElement: TypedElement{
 						Name: "Foo",
 						Type: TypescriptType{
-							Name: "MyEnum",
-							Kind: TypescriptKind("simple"),
+							Name:   "MyEnum",
+							Kind:   TypescriptKind("simple"),
+							IsEnum: true,
 						},
 					},
 				},
 			},
 		},
 	}
+	diff := deep.Equal(expectation, extract)
+	for _, d := range diff {
+		t.Error(d)
+	}
+}
+
+func TestEnumInMap(t *testing.T) {
+	handler, err := NewParsedSourceEnumHandler(".")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	extract, err := Extract(StructWithEnumMap{}, WithEnumerations(handler))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	sort.Slice(extract, func(ia, ib int) bool { return extract[ia].Name < extract[ib].Name })
+	for i := range extract {
+		sort.Slice(extract[i].Members, func(ia, ib int) bool { return extract[i].Members[ia].Name < extract[i].Members[ib].Name })
+		sort.Slice(extract[i].EnumMembers, func(ia, ib int) bool { return extract[i].EnumMembers[ia].Value < extract[i].EnumMembers[ib].Value })
+	}
+
+	expectation := []TypescriptType{
+		{
+			Name: "MyEnum",
+			Kind: TypescriptKind("enum"),
+			EnumMembers: []TypescriptEnumMember{
+				{
+					Name:  "MemberOne",
+					Value: "\"member-one\"",
+				},
+				{
+					Name:  "MemberThree",
+					Value: "\"member-three\"",
+				},
+				{
+					Name:  "MemberTwo",
+					Value: "\"member-two\"",
+				},
+			},
+		},
+		{
+			Name: "StructWithEnumMap",
+			Kind: TypescriptKind("iface"),
+			Members: []TypescriptMember{
+				{
+					TypedElement: TypedElement{
+						Name: "EnumMap",
+						Type: TypescriptType{
+							Kind: TypescriptKind("map"),
+							Params: []TypescriptType{
+								{
+									Name:   "MyEnum",
+									Kind:   TypescriptKind("simple"),
+									IsEnum: true,
+								}, {
+									Name: "string",
+									Kind: "simple",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	diff := deep.Equal(expectation, extract)
 	for _, d := range diff {
 		t.Error(d)
